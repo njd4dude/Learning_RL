@@ -1,0 +1,5 @@
+gymnasium[box2d]
+stable-baselines3[extra]
+huggingface_sb3
+huggingface_hub
+shimmy  # only needed when loading older gym-trained models from the Hub
