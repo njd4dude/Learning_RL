@@ -49,8 +49,11 @@ note at the top of `record_video.py` about setting up a virtual display.
 ## Usage
 
 ```bash
-# Train (defaults to 500k timesteps, ~15-20 min on CPU/GPU)
+# Train a new agent (defaults to 500k timesteps, ~15-20 min on CPU/GPU)
 python main.py train
+
+# Or keep training the last saved zip for another 500k timesteps
+python main.py train --load
 
 # Check how good it is
 python main.py evaluate

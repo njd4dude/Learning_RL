@@ -1,8 +1,13 @@
 """Build and train a PPO agent on LunarLander.
 
 Usage:
-    python train.py
+    python train.py                 # start a new agent from scratch
+    python train.py --load          # continue from the last saved zip
+    python train.py --load PATH     # continue from a specific zip or checkpoint
 """
+
+import argparse
+from pathlib import Path
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
@@ -39,8 +44,28 @@ def build_checkpoint_callback(n_envs: int = config.N_ENVS) -> CheckpointCallback
     )
 
 
-def train(timesteps: int = config.TRAIN_TIMESTEPS, save_path: str = config.MODEL_NAME) -> PPO:
+def resolve_model_path(path: str) -> Path:
+    """Find a saved model, accepting a path with or without the `.zip` suffix."""
+    candidate = Path(path)
+    options = [candidate] if candidate.suffix == ".zip" else [candidate, Path(f"{path}.zip")]
+    for option in options:
+        if option.is_file():
+            return option
+    tried = ", ".join(str(option) for option in options)
+    raise SystemExit(f"No saved model found ({tried}). Train from scratch, or pass a checkpoint path.")
+
+
+def train(
+    timesteps: int = config.TRAIN_TIMESTEPS,
+    save_path: str = config.MODEL_NAME,
+    load_path: str | None = None,
+) -> PPO:
     """Train a PPO agent, saving periodic checkpoints and a final model.
+
+    Pass `load_path` to keep training an existing zip. Omit it to start a
+    new agent. When resuming, `timesteps` is how many additional steps to
+    train, and the timestep counter keeps going so logs and checkpoints
+    line up with the earlier run.
 
     Safe to interrupt with Ctrl+C: the most recent progress is saved to
     `save_path` either way (either because training finished, or via the
@@ -48,11 +73,25 @@ def train(timesteps: int = config.TRAIN_TIMESTEPS, save_path: str = config.MODEL
     in `config.CHECKPOINT_DIR`.
     """
     env = build_env()
-    model = build_model(env)
+    if load_path is None:
+        print("Starting a new agent from scratch.")
+        model = build_model(env)
+        reset_num_timesteps = True
+    else:
+        resolved = resolve_model_path(load_path)
+        print(f"Resuming from {resolved}")
+        model = PPO.load(resolved, env=env)
+        reset_num_timesteps = False
+        print(f"Already trained for {model.num_timesteps:,} timesteps; training {timesteps:,} more.")
+
     checkpoint_callback = build_checkpoint_callback()
 
     try:
-        model.learn(total_timesteps=timesteps, callback=checkpoint_callback)
+        model.learn(
+            total_timesteps=timesteps,
+            callback=checkpoint_callback,
+            reset_num_timesteps=reset_num_timesteps,
+        )
     except KeyboardInterrupt:
         print("\nTraining interrupted — saving current progress...")
     finally:
@@ -62,5 +101,22 @@ def train(timesteps: int = config.TRAIN_TIMESTEPS, save_path: str = config.MODEL
     return model
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--load",
+        nargs="?",
+        const=config.MODEL_NAME,
+        default=None,
+        metavar="PATH",
+        help="Resume from a saved model. With no PATH, uses the last saved zip.",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    train()
+    args = parse_args()
+    train(load_path=args.load)

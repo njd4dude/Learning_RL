@@ -2,6 +2,7 @@
 
 Usage:
     python main.py train
+    python main.py train --load [model_path]
     python main.py evaluate [model_path]
     python main.py record [model_path]
     python main.py push
@@ -18,10 +19,21 @@ import train as train_mod
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("train", help="Train a new PPO agent and save it to disk")
+    p_train = sub.add_parser("train", help="Train a PPO agent and save it to disk")
+    p_train.add_argument(
+        "--load",
+        nargs="?",
+        const=config.MODEL_NAME,
+        default=None,
+        metavar="PATH",
+        help="Resume from a saved model. With no PATH, uses the last saved zip. Omit to start from scratch.",
+    )
 
     p_eval = sub.add_parser("evaluate", help="Evaluate a saved agent")
     p_eval.add_argument("model_path", nargs="?", default=config.MODEL_NAME)
@@ -38,7 +50,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "train":
-        train_mod.train()
+        train_mod.train(load_path=args.load)
     elif args.command == "evaluate":
         evaluate_mod.evaluate(args.model_path)
     elif args.command == "record":
