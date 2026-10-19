@@ -27,7 +27,7 @@ PPO_KWARGS = dict(
     tensorboard_log="./logs",
 )
 
-TRAIN_TIMESTEPS = 500_000
+TRAIN_TIMESTEPS = 1_0000_000
 
 # Save a checkpoint every N timesteps during training, so progress survives
 # a Ctrl+C or crash even if the final save never happens.
