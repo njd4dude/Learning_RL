@@ -2,8 +2,10 @@ venv/
 __pycache__/
 *.pyc
 
+
 # Training outputs. The finished model belongs on the Hugging Face Hub.
 checkpoints/
 logs/
 videos/
 *.zip
+*.pkl
