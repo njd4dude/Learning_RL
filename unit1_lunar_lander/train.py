@@ -58,18 +58,18 @@ def save_final_checkpoint(model: PPO) -> Path:
     return path
 
 
-def start_new_log_run(model: PPO) -> None:
+def start_new_log_run(model: PPO, tb_log_name: str = "PPO") -> None:
     """Open a fresh TensorBoard folder for this execution.
 
     Resuming passes ``reset_num_timesteps=False``, which would otherwise
-    keep writing into the latest ``PPO_N`` directory. Setting the logger
-    first still increments that number. The agent's own step counter is
+    keep writing into the latest log directory. Setting the logger first
+    still increments that number. The agent's own step counter is
     unchanged, so checkpoints stay on the loaded timeline.
     """
     logger = configure_logger(
         model.verbose,
         model.tensorboard_log,
-        tb_log_name="PPO",
+        tb_log_name=tb_log_name,
         reset_num_timesteps=True,
     )
     model.set_logger(logger)

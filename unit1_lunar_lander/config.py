@@ -29,6 +29,28 @@ PPO_KWARGS = dict(
 
 TRAIN_TIMESTEPS = 1_0000_000
 
+# DQN hyperparameters tuned for LunarLander-v3 in RL Baselines3 Zoo.
+# DQN learns from one environment and a replay buffer, so this block is
+# separate from the PPO settings above. 100k steps is the zoo budget.
+DQN_MODEL_NAME = "dqn-LunarLander-v3"
+DQN_TIMESTEPS = 1_000_000
+DQN_KWARGS = dict(
+    policy="MlpPolicy",
+    learning_rate=6.3e-4,
+    batch_size=128,
+    buffer_size=50_000,
+    learning_starts=0,
+    gamma=0.99,
+    target_update_interval=250,
+    train_freq=4,
+    gradient_steps=-1,
+    exploration_fraction=0.12,
+    exploration_final_eps=0.1,
+    policy_kwargs=dict(net_arch=[256, 256]),
+    verbose=1,
+    tensorboard_log="./logs",
+)
+
 # Save a checkpoint every N timesteps during training, so progress survives
 # a Ctrl+C or crash even if the final save never happens.
 CHECKPOINT_FREQ = 50_000

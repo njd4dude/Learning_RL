@@ -19,9 +19,9 @@ import sys
 
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
-from stable_baselines3 import PPO
 
 import config
+from evaluate import load_saved_model
 
 
 def record(
@@ -30,7 +30,7 @@ def record(
     video_folder: str = config.VIDEO_FOLDER,
 ):
     """Play `episodes` episodes with a trained model and save them as videos."""
-    model = PPO.load(model_path)
+    model = load_saved_model(model_path)
     env = RecordVideo(
         gym.make(config.ENV_ID, render_mode="rgb_array"),
         video_folder=video_folder,

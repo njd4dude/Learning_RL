@@ -55,6 +55,12 @@ python main.py train
 # Or keep training the last saved zip for another 500k timesteps
 python main.py train --load
 
+# Train a separate DQN agent (saved as dqn-LunarLander-v3.zip)
+python main.py train-dqn
+
+# Or keep training the last DQN zip, replay buffer included
+python main.py train-dqn --load
+
 # Check how good it is
 python main.py evaluate
 

@@ -3,6 +3,8 @@
 Usage:
     python main.py train
     python main.py train --load [model_path]
+    python main.py train-dqn
+    python main.py train-dqn --load [model_path]
     python main.py evaluate [model_path]
     python main.py record [model_path]
     python main.py push
@@ -16,6 +18,7 @@ import evaluate as evaluate_mod
 import hub
 import record_video
 import train as train_mod
+import train_dqn
 
 
 def main():
@@ -35,6 +38,16 @@ def main():
         help="Resume from a saved model. With no PATH, uses the last saved zip. Omit to start from scratch.",
     )
 
+    p_dqn = sub.add_parser("train-dqn", help="Train a DQN agent and save it to disk")
+    p_dqn.add_argument(
+        "--load",
+        nargs="?",
+        const=config.DQN_MODEL_NAME,
+        default=None,
+        metavar="PATH",
+        help="Resume from a saved DQN model. With no PATH, uses the last saved zip. Omit to start from scratch.",
+    )
+
     p_eval = sub.add_parser("evaluate", help="Evaluate a saved agent")
     p_eval.add_argument("model_path", nargs="?", default=config.MODEL_NAME)
 
@@ -51,6 +64,8 @@ def main():
 
     if args.command == "train":
         train_mod.train(load_path=args.load)
+    elif args.command == "train-dqn":
+        train_dqn.train(load_path=args.load)
     elif args.command == "evaluate":
         evaluate_mod.evaluate(args.model_path)
     elif args.command == "record":
