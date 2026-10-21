@@ -1,0 +1,6 @@
+gymnasium[toy-text]
+numpy
+tqdm
+huggingface_hub
+imageio
+imageio-ffmpeg
