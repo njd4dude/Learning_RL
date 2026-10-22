@@ -27,8 +27,14 @@ def build_env(env_id: str, env_kwargs: dict):
 
 def _new_run_dir(env_name: str) -> Path:
     """Unique folder for this training session, e.g. runs/20261021_153012_frozenlake-slippery."""
+    runs = Path(config.RUNS_FOLDER)
+    runs.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = Path(config.RUNS_FOLDER) / f"{stamp}_{env_name}"
+    run_dir = runs / f"{stamp}_{env_name}"
+    # Sweeps can finish two trials in the same second; add microseconds if needed.
+    if run_dir.exists():
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        run_dir = runs / f"{stamp}_{env_name}"
     run_dir.mkdir(parents=True, exist_ok=False)
     return run_dir
 
@@ -62,17 +68,19 @@ def _write_run_log(
     return log_path
 
 
-def train(env_name: str = config.DEFAULT_ENVIRONMENT):
+def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = None):
     """Train a fresh Q-table for `env_name` and pickle it under `runs/`.
 
     Hyperparameters come from `config.ENVIRONMENTS[env_name]["train_kwargs"]`.
-    Change them in config.py between runs; each run gets its own folder so
-    nothing is overwritten. After training, runs the usual eval and records
-    the score in run.txt.
+    Pass `overrides` to replace selected keys for this run only (used by
+    sweep.py). Each run gets its own folder so nothing is overwritten.
+    After training, runs the usual eval and records the score in run.txt.
     """
     settings = config.ENVIRONMENTS[env_name]
     env = build_env(settings["env_id"], settings["env_kwargs"])
-    train_kwargs = settings["train_kwargs"]
+    train_kwargs = {**settings["train_kwargs"], **(overrides or {})}
+    if overrides:
+        print(f"Overrides: {overrides}")
 
     state_space = env.observation_space.n
     action_space = env.action_space.n
@@ -122,7 +130,14 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT):
     print(f"Saved model to {model_path}")
     print(f"Run log:      {log_path}")
 
-    return model
+    return {
+        "model": model,
+        "mean_reward": mean_reward,
+        "std_reward": std_reward,
+        "model_path": model_path,
+        "run_dir": run_dir,
+        "train_kwargs": train_kwargs,
+    }
 
 
 def parse_args() -> argparse.Namespace:
