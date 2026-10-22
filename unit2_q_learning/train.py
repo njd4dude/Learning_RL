@@ -91,20 +91,30 @@ def _write_run_log(
     model_path: Path,
     mean_reward: float,
     std_reward: float,
+    episodes_completed: int | None = None,
+    interrupted: bool = False,
 ):
     """Human-readable record of what was trained and where the model lives."""
+    planned = train_kwargs.get("n_training_episodes")
     lines = [
         f"env: {env_name}",
         f"env_id: {settings['env_id']}",
         f"env_kwargs: {settings['env_kwargs']}",
         f"model_path: {model_path}",
         f"trained_at: {datetime.now().isoformat(timespec='seconds')}",
-        f"mean_reward: {mean_reward:.4f}",
-        f"std_reward: {std_reward:.4f}",
-        f"tensorboard: tensorboard --logdir {config.RUNS_FOLDER}",
-        "",
-        "hyperparameters:",
+        f"interrupted: {interrupted}",
     ]
+    if episodes_completed is not None:
+        lines.append(f"episodes_completed: {episodes_completed}/{planned}")
+    lines.extend(
+        [
+            f"mean_reward: {mean_reward:.4f}",
+            f"std_reward: {std_reward:.4f}",
+            f"tensorboard: tensorboard --logdir {config.RUNS_FOLDER}",
+            "",
+            "hyperparameters:",
+        ]
+    )
     for key, value in train_kwargs.items():
         lines.append(f"  {key}: {value}")
 
@@ -158,6 +168,14 @@ def train(
     tb_log_every = 1 if n_eps <= 50_000 else 10
 
     qtable = initialize_q_table(state_space, action_space)
+    history = {
+        "episode_reward": [],
+        "episode_length": [],
+        "epsilon": [],
+        "learning_rate": [],
+        "eval_episode": [],
+        "eval_mean_reward": [],
+    }
     try:
         qtable, history = run_training(
             env,
@@ -180,6 +198,14 @@ def train(
     finally:
         tb_writer.close()
 
+    episodes_completed = len(history.get("episode_reward", []))
+    interrupted = episodes_completed < n_eps
+    if interrupted:
+        print(
+            f"Saving partial run ({episodes_completed}/{n_eps} episodes) "
+            f"to {run_dir}"
+        )
+
     # Fresh env for eval (same idea as evaluate.py), using config eval settings.
     eval_env = gym.make(settings["env_id"], **settings["env_kwargs"])
     mean_reward, std_reward = evaluate_agent(
@@ -196,6 +222,8 @@ def train(
         "env_kwargs": settings["env_kwargs"],
         **train_kwargs,
         "qtable": qtable,
+        "interrupted": interrupted,
+        "episodes_completed": episodes_completed,
     }
 
     model_path = run_dir / "model.pkl"
@@ -206,10 +234,23 @@ def train(
     history_path = run_dir / "history.npz"
     np.savez_compressed(history_path, **{k: np.asarray(v) for k, v in history.items()})
     plot_path = run_dir / "training_curves.png"
-    save_training_plots(history, plot_path, title=f"{env_name}  mean_reward={mean_reward:.2f}")
+    status = "interrupted" if interrupted else "complete"
+    save_training_plots(
+        history,
+        plot_path,
+        title=f"{env_name}  {status}  mean_reward={mean_reward:.2f}",
+    )
 
     log_path = _write_run_log(
-        run_dir, env_name, settings, train_kwargs, model_path, mean_reward, std_reward
+        run_dir,
+        env_name,
+        settings,
+        train_kwargs,
+        model_path,
+        mean_reward,
+        std_reward,
+        episodes_completed=episodes_completed,
+        interrupted=interrupted,
     )
     print(f"Saved model to {model_path}")
     print(f"Run log:      {log_path}")

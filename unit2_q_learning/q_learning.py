@@ -100,54 +100,62 @@ def train(
         "eval_mean_reward": [],
     }
 
-    for episode in tqdm(range(n_training_episodes)):
-        epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
-        if lr_decay_rate > 0 and min_lr < max_lr:
-            lr = min_lr + (max_lr - min_lr) * np.exp(-lr_decay_rate * episode)
-        else:
-            lr = max_lr
+    try:
+        for episode in tqdm(range(n_training_episodes)):
+            epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
+            if lr_decay_rate > 0 and min_lr < max_lr:
+                lr = min_lr + (max_lr - min_lr) * np.exp(-lr_decay_rate * episode)
+            else:
+                lr = max_lr
 
-        state, _info = env.reset()
-        total_reward = 0.0
-        steps = 0
+            state, _info = env.reset()
+            total_reward = 0.0
+            steps = 0
 
-        for _step in range(max_steps):
-            action = epsilon_greedy_policy(qtable, state, epsilon, env)
-            new_state, reward, terminated, truncated, _info = env.step(action)
+            for _step in range(max_steps):
+                action = epsilon_greedy_policy(qtable, state, epsilon, env)
+                new_state, reward, terminated, truncated, _info = env.step(action)
 
-            qtable[state][action] = qtable[state][action] + lr * (
-                reward + gamma * np.max(qtable[new_state]) - qtable[state][action]
-            )
+                qtable[state][action] = qtable[state][action] + lr * (
+                    reward + gamma * np.max(qtable[new_state]) - qtable[state][action]
+                )
 
-            total_reward += float(reward)
-            steps += 1
-            if terminated or truncated:
-                break
-            state = new_state
+                total_reward += float(reward)
+                steps += 1
+                if terminated or truncated:
+                    break
+                state = new_state
 
-        history["episode_reward"].append(total_reward)
-        history["episode_length"].append(steps)
-        history["epsilon"].append(float(epsilon))
-        history["learning_rate"].append(float(lr))
+            history["episode_reward"].append(total_reward)
+            history["episode_length"].append(steps)
+            history["epsilon"].append(float(epsilon))
+            history["learning_rate"].append(float(lr))
 
-        if tb_writer is not None and (episode + 1) % tb_log_every == 0:
-            tb_writer.add_scalar("train/episode_reward", total_reward, episode)
-            tb_writer.add_scalar("train/episode_length", steps, episode)
-            tb_writer.add_scalar("train/epsilon", float(epsilon), episode)
-            tb_writer.add_scalar("train/learning_rate", float(lr), episode)
+            if tb_writer is not None and (episode + 1) % tb_log_every == 0:
+                tb_writer.add_scalar("train/episode_reward", total_reward, episode)
+                tb_writer.add_scalar("train/episode_length", steps, episode)
+                tb_writer.add_scalar("train/epsilon", float(epsilon), episode)
+                tb_writer.add_scalar("train/learning_rate", float(lr), episode)
 
-        if train_eval_every > 0 and (episode + 1) % train_eval_every == 0:
-            mid_seeds = None
-            if eval_seed:
-                mid_seeds = eval_seed[:n_train_eval_episodes]
-            eval_mean = _greedy_eval_mean(
-                env, qtable, max_steps, n_train_eval_episodes, seed=mid_seeds
-            )
-            history["eval_episode"].append(episode)
-            history["eval_mean_reward"].append(eval_mean)
-            if tb_writer is not None:
-                tb_writer.add_scalar("eval/mean_reward", eval_mean, episode)
-                tb_writer.flush()
+            if train_eval_every > 0 and (episode + 1) % train_eval_every == 0:
+                mid_seeds = None
+                if eval_seed:
+                    mid_seeds = eval_seed[:n_train_eval_episodes]
+                eval_mean = _greedy_eval_mean(
+                    env, qtable, max_steps, n_train_eval_episodes, seed=mid_seeds
+                )
+                history["eval_episode"].append(episode)
+                history["eval_mean_reward"].append(eval_mean)
+                if tb_writer is not None:
+                    tb_writer.add_scalar("eval/mean_reward", eval_mean, episode)
+                    tb_writer.flush()
+    except KeyboardInterrupt:
+        # Return whatever we have so train.py can still pickle / plot / log.
+        done = len(history["episode_reward"])
+        print(
+            f"\nInterrupted after {done}/{n_training_episodes} episodes "
+            "— returning partial Q-table."
+        )
 
     if tb_writer is not None:
         tb_writer.flush()
