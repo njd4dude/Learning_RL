@@ -1,7 +1,7 @@
 """CLI entrypoint tying the Q-Learning pipeline together.
 
 Usage:
-    python main.py train [--env frozenlake|taxi]
+    python main.py train [--env frozenlake|frozenlake-slippery|taxi]
     python main.py evaluate [model_path]
     python main.py record [model_path] [out_path]
     python main.py push <model_path> <repo_id>

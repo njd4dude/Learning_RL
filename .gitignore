@@ -7,5 +7,6 @@ __pycache__/
 checkpoints/
 logs/
 videos/
+runs/
 *.zip
 *.pkl

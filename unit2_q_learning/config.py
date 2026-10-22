@@ -6,12 +6,17 @@ logic itself. Each environment gets its own settings block since they don't
 share a state/action space or a training budget.
 """
 
-# --- FrozenLake-v1 (4x4, non-slippery) ---
+# --- FrozenLake-v1 (4x4) ---
+# Non-slippery: every action goes exactly where you intend (deterministic).
+# Slippery: each action has a chance to slide sideways instead (stochastic),
+# so the same greedy policy can take different paths across episodes.
 FROZENLAKE_ENV_ID = "FrozenLake-v1"
 FROZENLAKE_MAP_NAME = "4x4"
-FROZENLAKE_IS_SLIPPERY = False
+
 FROZENLAKE_MODEL_NAME = "q-FrozenLake-v1-4x4-noSlippery"
 FROZENLAKE_MODEL_PATH = f"{FROZENLAKE_MODEL_NAME}.pkl"
+FROZENLAKE_SLIPPERY_MODEL_NAME = "q-FrozenLake-v1-4x4-slippery"
+FROZENLAKE_SLIPPERY_MODEL_PATH = f"{FROZENLAKE_SLIPPERY_MODEL_NAME}.pkl"
 
 FROZENLAKE_KWARGS = dict(
     n_training_episodes=10_000,
@@ -23,6 +28,19 @@ FROZENLAKE_KWARGS = dict(
     max_epsilon=1.0,
     min_epsilon=0.05,
     decay_rate=0.0005,
+)
+
+# Slippery ice is harder, so train longer / explore a bit longer.
+FROZENLAKE_SLIPPERY_KWARGS = dict(
+    n_training_episodes=100_000,
+    learning_rate=0.07,
+    n_eval_episodes=500,
+    max_steps=99,
+    gamma=0.95,
+    eval_seed=[],
+    max_epsilon=1.0,
+    min_epsilon=0.05,
+    decay_rate=0.00005,
 )
 
 # --- Taxi-v3 ---
@@ -55,10 +73,17 @@ TAXI_KWARGS = dict(
 ENVIRONMENTS = {
     "frozenlake": dict(
         env_id=FROZENLAKE_ENV_ID,
-        env_kwargs=dict(map_name=FROZENLAKE_MAP_NAME, is_slippery=FROZENLAKE_IS_SLIPPERY),
+        env_kwargs=dict(map_name=FROZENLAKE_MAP_NAME, is_slippery=False),
         model_name=FROZENLAKE_MODEL_NAME,
         model_path=FROZENLAKE_MODEL_PATH,
         train_kwargs=FROZENLAKE_KWARGS,
+    ),
+    "frozenlake-slippery": dict(
+        env_id=FROZENLAKE_ENV_ID,
+        env_kwargs=dict(map_name=FROZENLAKE_MAP_NAME, is_slippery=True),
+        model_name=FROZENLAKE_SLIPPERY_MODEL_NAME,
+        model_path=FROZENLAKE_SLIPPERY_MODEL_PATH,
+        train_kwargs=FROZENLAKE_SLIPPERY_KWARGS,
     ),
     "taxi": dict(
         env_id=TAXI_ENV_ID,
@@ -74,6 +99,10 @@ DEFAULT_ENVIRONMENT = "frozenlake"
 # --- Hugging Face Hub ---
 # Change this to "<your-username>/<model-name>" before pushing.
 USERNAME = "<your-username>"
+
+# --- Training runs ---
+# Each `python main.py train` writes a unique folder here with model.pkl + run.txt.
+RUNS_FOLDER = "runs"
 
 # --- Video recording ---
 VIDEO_FOLDER = "videos"
