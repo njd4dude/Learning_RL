@@ -21,6 +21,8 @@ FROZENLAKE_SLIPPERY_MODEL_PATH = f"{FROZENLAKE_SLIPPERY_MODEL_NAME}.pkl"
 FROZENLAKE_KWARGS = dict(
     n_training_episodes=10_000,
     learning_rate=0.7,
+    min_learning_rate=0.7,  # same as learning_rate => no LR decay
+    lr_decay_rate=0.0,
     n_eval_episodes=100,
     max_steps=99,
     gamma=0.95,
@@ -30,10 +32,13 @@ FROZENLAKE_KWARGS = dict(
     decay_rate=0.0005,
 )
 
-# Slippery ice is harder, so train longer / explore a bit longer.
+# Slippery: decay LR so early episodes learn fast, late ones mostly settle.
+# lr = min_lr + (max_lr - min_lr) * exp(-lr_decay_rate * episode)
 FROZENLAKE_SLIPPERY_KWARGS = dict(
-    n_training_episodes=100_000,
-    learning_rate=0.07,
+    n_training_episodes=1_500_000,
+    learning_rate=0.1,  # starting / max LR
+    min_learning_rate=0.001,
+    lr_decay_rate=0,  # ~near min_lr by a few hundred thousand episodes
     n_eval_episodes=500,
     max_steps=99,
     gamma=0.95,
@@ -61,6 +66,8 @@ TAXI_EVAL_SEED = [
 TAXI_KWARGS = dict(
     n_training_episodes=40_000,
     learning_rate=0.7,
+    min_learning_rate=0.7,
+    lr_decay_rate=0.0,
     n_eval_episodes=100,
     max_steps=99,
     gamma=0.95,

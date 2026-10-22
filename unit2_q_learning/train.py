@@ -89,6 +89,8 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT):
         max_epsilon=train_kwargs["max_epsilon"],
         min_epsilon=train_kwargs["min_epsilon"],
         decay_rate=train_kwargs["decay_rate"],
+        min_learning_rate=train_kwargs.get("min_learning_rate"),
+        lr_decay_rate=train_kwargs.get("lr_decay_rate", 0.0),
     )
 
     # Fresh env for eval (same idea as evaluate.py), using config eval settings.

@@ -38,22 +38,36 @@ def train(
     max_epsilon: float,
     min_epsilon: float,
     decay_rate: float,
+    min_learning_rate: float | None = None,
+    lr_decay_rate: float = 0.0,
 ) -> np.ndarray:
     """Run the Q-Learning update loop and return the trained table.
 
-    Each episode decays epsilon (less exploration as training progresses)
-    and applies the Bellman update
+    Each episode decays epsilon (less exploration as training progresses).
+    Learning rate can stay fixed, or decay the same way toward
+    `min_learning_rate` when `lr_decay_rate > 0`:
+    `lr = min_lr + (max_lr - min_lr) * exp(-lr_decay_rate * episode)`.
+
+    Applies the Bellman update
     `Q(s,a) += lr * (reward + gamma * max(Q(s')) - Q(s,a))` at every step.
     """
+    max_lr = learning_rate
+    min_lr = learning_rate if min_learning_rate is None else min_learning_rate
+
     for episode in tqdm(range(n_training_episodes)):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
+        if lr_decay_rate > 0 and min_lr < max_lr:
+            lr = min_lr + (max_lr - min_lr) * np.exp(-lr_decay_rate * episode)
+        else:
+            lr = max_lr
+
         state, _info = env.reset()
 
         for _step in range(max_steps):
             action = epsilon_greedy_policy(qtable, state, epsilon, env)
             new_state, reward, terminated, truncated, _info = env.step(action)
 
-            qtable[state][action] = qtable[state][action] + learning_rate * (
+            qtable[state][action] = qtable[state][action] + lr * (
                 reward + gamma * np.max(qtable[new_state]) - qtable[state][action]
             )
 
