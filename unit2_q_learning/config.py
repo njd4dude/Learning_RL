@@ -30,12 +30,15 @@ FROZENLAKE_KWARGS = dict(
     max_epsilon=1.0,
     min_epsilon=0.05,
     decay_rate=0.0005,
+    # Mid-training greedy eval for the debug plots (0 = skip).
+    train_eval_every=1_000,
+    n_train_eval_episodes=50,
 )
 
 # Slippery: decay LR so early episodes learn fast, late ones mostly settle.
 # lr = min_lr + (max_lr - min_lr) * exp(-lr_decay_rate * episode)
 FROZENLAKE_SLIPPERY_KWARGS = dict(
-    n_training_episodes=1_000_000,
+    n_training_episodes=500_000,
     learning_rate=0.7,  # starting / max LR
     min_learning_rate=0.001,
     lr_decay_rate=0.00001,  # ~near min_lr by a few hundred thousand episodes
@@ -46,6 +49,8 @@ FROZENLAKE_SLIPPERY_KWARGS = dict(
     max_epsilon=1.0,
     min_epsilon=0.05,
     decay_rate=0.00005,
+    train_eval_every=10_000,
+    n_train_eval_episodes=50,
 )
 
 # --- Taxi-v3 ---
@@ -75,6 +80,8 @@ TAXI_KWARGS = dict(
     max_epsilon=1.0,
     min_epsilon=0.05,
     decay_rate=0.005,
+    train_eval_every=2_000,
+    n_train_eval_episodes=50,
 )
 
 ENVIRONMENTS = {

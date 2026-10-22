@@ -28,6 +28,22 @@ def epsilon_greedy_policy(qtable: np.ndarray, state: int, epsilon: float, env) -
     return env.action_space.sample()
 
 
+def _greedy_eval_mean(env, qtable: np.ndarray, max_steps: int, n_episodes: int) -> float:
+    """Quiet mean reward under the greedy policy (used for mid-training curves)."""
+    rewards = []
+    for _ in range(n_episodes):
+        state, _info = env.reset()
+        total = 0.0
+        for _step in range(max_steps):
+            action = greedy_policy(qtable, state)
+            state, reward, terminated, truncated, _info = env.step(action)
+            total += float(reward)
+            if terminated or truncated:
+                break
+        rewards.append(total)
+    return float(np.mean(rewards))
+
+
 def train(
     env,
     qtable: np.ndarray,
@@ -40,19 +56,35 @@ def train(
     decay_rate: float,
     min_learning_rate: float | None = None,
     lr_decay_rate: float = 0.0,
-) -> np.ndarray:
-    """Run the Q-Learning update loop and return the trained table.
+    train_eval_every: int = 0,
+    n_train_eval_episodes: int = 50,
+    tb_writer=None,
+    tb_log_every: int = 1,
+) -> tuple[np.ndarray, dict]:
+    """Run the Q-Learning update loop and return `(qtable, history)`.
 
     Each episode decays epsilon (less exploration as training progresses).
     Learning rate can stay fixed, or decay the same way toward
     `min_learning_rate` when `lr_decay_rate > 0`:
     `lr = min_lr + (max_lr - min_lr) * exp(-lr_decay_rate * episode)`.
 
-    Applies the Bellman update
-    `Q(s,a) += lr * (reward + gamma * max(Q(s')) - Q(s,a))` at every step.
+    `history` records per-episode reward/length/epsilon/lr, plus optional
+    periodic greedy-eval scores when `train_eval_every > 0`.
+    If `tb_writer` is a TensorBoard SummaryWriter, scalars are logged live
+    every `tb_log_every` episodes (and on every greedy eval).
     """
     max_lr = learning_rate
     min_lr = learning_rate if min_learning_rate is None else min_learning_rate
+    tb_log_every = max(1, int(tb_log_every))
+
+    history = {
+        "episode_reward": [],
+        "episode_length": [],
+        "epsilon": [],
+        "learning_rate": [],
+        "eval_episode": [],
+        "eval_mean_reward": [],
+    }
 
     for episode in tqdm(range(n_training_episodes)):
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate * episode)
@@ -62,6 +94,8 @@ def train(
             lr = max_lr
 
         state, _info = env.reset()
+        total_reward = 0.0
+        steps = 0
 
         for _step in range(max_steps):
             action = epsilon_greedy_policy(qtable, state, epsilon, env)
@@ -71,11 +105,35 @@ def train(
                 reward + gamma * np.max(qtable[new_state]) - qtable[state][action]
             )
 
+            total_reward += float(reward)
+            steps += 1
             if terminated or truncated:
                 break
             state = new_state
 
-    return qtable
+        history["episode_reward"].append(total_reward)
+        history["episode_length"].append(steps)
+        history["epsilon"].append(float(epsilon))
+        history["learning_rate"].append(float(lr))
+
+        if tb_writer is not None and (episode + 1) % tb_log_every == 0:
+            tb_writer.add_scalar("train/episode_reward", total_reward, episode)
+            tb_writer.add_scalar("train/episode_length", steps, episode)
+            tb_writer.add_scalar("train/epsilon", float(epsilon), episode)
+            tb_writer.add_scalar("train/learning_rate", float(lr), episode)
+
+        if train_eval_every > 0 and (episode + 1) % train_eval_every == 0:
+            eval_mean = _greedy_eval_mean(env, qtable, max_steps, n_train_eval_episodes)
+            history["eval_episode"].append(episode)
+            history["eval_mean_reward"].append(eval_mean)
+            if tb_writer is not None:
+                tb_writer.add_scalar("eval/mean_reward", eval_mean, episode)
+                tb_writer.flush()
+
+    if tb_writer is not None:
+        tb_writer.flush()
+
+    return qtable, history
 
 
 def evaluate_agent(env, max_steps: int, n_eval_episodes: int, qtable: np.ndarray, seed: list[int]):

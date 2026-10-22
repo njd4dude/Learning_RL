@@ -6,8 +6,8 @@ Usage:
     python train.py --env taxi                   # Taxi-v4
 
 Edit hyperparameters in config.py, then re-run. Each run writes a unique
-folder under `runs/` with the model pickle and a text file listing the
-hyperparameters used for that session.
+folder under `runs/` with the model pickle, run.txt, final PNG curves, and
+live TensorBoard logs under `tb/`.
 """
 
 import argparse
@@ -16,8 +16,11 @@ from datetime import datetime
 from pathlib import Path
 
 import gymnasium as gym
+import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
 import config
+from plot_training import save_training_plots
 from q_learning import evaluate_agent, initialize_q_table, train as run_training
 
 
@@ -57,6 +60,7 @@ def _write_run_log(
         f"trained_at: {datetime.now().isoformat(timespec='seconds')}",
         f"mean_reward: {mean_reward:.4f}",
         f"std_reward: {std_reward:.4f}",
+        f"tensorboard: tensorboard --logdir {run_dir / 'tb'}",
         "",
         "hyperparameters:",
     ]
@@ -73,8 +77,8 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = N
 
     Hyperparameters come from `config.ENVIRONMENTS[env_name]["train_kwargs"]`.
     Pass `overrides` to replace selected keys for this run only (used by
-    sweep.py). Each run gets its own folder so nothing is overwritten.
-    After training, runs the usual eval and records the score in run.txt.
+    sweep.py). The run folder is created up front so TensorBoard can stream
+    live metrics during training; a final PNG is written when training ends.
     """
     settings = config.ENVIRONMENTS[env_name]
     env = build_env(settings["env_id"], settings["env_kwargs"])
@@ -86,20 +90,39 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = N
     action_space = env.action_space.n
     print(f"{env_name}: {state_space} states, {action_space} actions")
 
+    # Create the run folder first so live TensorBoard logs have a place to go.
+    run_dir = _new_run_dir(env_name)
+    tb_dir = run_dir / "tb"
+    tb_writer = SummaryWriter(log_dir=str(tb_dir))
+    print(f"Run folder:   {run_dir}")
+    print(f"Live curves:  tensorboard --logdir {tb_dir}")
+
+    # For long runs, logging every episode to TB is fine but can add overhead;
+    # default to every episode under 50k, otherwise every 10.
+    n_eps = train_kwargs["n_training_episodes"]
+    tb_log_every = 1 if n_eps <= 50_000 else 10
+
     qtable = initialize_q_table(state_space, action_space)
-    qtable = run_training(
-        env,
-        qtable,
-        n_training_episodes=train_kwargs["n_training_episodes"],
-        learning_rate=train_kwargs["learning_rate"],
-        gamma=train_kwargs["gamma"],
-        max_steps=train_kwargs["max_steps"],
-        max_epsilon=train_kwargs["max_epsilon"],
-        min_epsilon=train_kwargs["min_epsilon"],
-        decay_rate=train_kwargs["decay_rate"],
-        min_learning_rate=train_kwargs.get("min_learning_rate"),
-        lr_decay_rate=train_kwargs.get("lr_decay_rate", 0.0),
-    )
+    try:
+        qtable, history = run_training(
+            env,
+            qtable,
+            n_training_episodes=n_eps,
+            learning_rate=train_kwargs["learning_rate"],
+            gamma=train_kwargs["gamma"],
+            max_steps=train_kwargs["max_steps"],
+            max_epsilon=train_kwargs["max_epsilon"],
+            min_epsilon=train_kwargs["min_epsilon"],
+            decay_rate=train_kwargs["decay_rate"],
+            min_learning_rate=train_kwargs.get("min_learning_rate"),
+            lr_decay_rate=train_kwargs.get("lr_decay_rate", 0.0),
+            train_eval_every=train_kwargs.get("train_eval_every", 0),
+            n_train_eval_episodes=train_kwargs.get("n_train_eval_episodes", 50),
+            tb_writer=tb_writer,
+            tb_log_every=tb_log_every,
+        )
+    finally:
+        tb_writer.close()
 
     # Fresh env for eval (same idea as evaluate.py), using config eval settings.
     eval_env = gym.make(settings["env_id"], **settings["env_kwargs"])
@@ -119,16 +142,23 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = N
         "qtable": qtable,
     }
 
-    run_dir = _new_run_dir(env_name)
     model_path = run_dir / "model.pkl"
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
+
+    # Raw series for later analysis, plus a readable PNG snapshot of the curves.
+    history_path = run_dir / "history.npz"
+    np.savez_compressed(history_path, **{k: np.asarray(v) for k, v in history.items()})
+    plot_path = run_dir / "training_curves.png"
+    save_training_plots(history, plot_path, title=f"{env_name}  mean_reward={mean_reward:.2f}")
 
     log_path = _write_run_log(
         run_dir, env_name, settings, train_kwargs, model_path, mean_reward, std_reward
     )
     print(f"Saved model to {model_path}")
     print(f"Run log:      {log_path}")
+    print(f"Final PNG:    {plot_path}")
+    print(f"TensorBoard:  tensorboard --logdir {tb_dir}")
 
     return {
         "model": model,
@@ -137,6 +167,8 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = N
         "model_path": model_path,
         "run_dir": run_dir,
         "train_kwargs": train_kwargs,
+        "history": history,
+        "plot_path": plot_path,
     }
 
 
