@@ -12,6 +12,10 @@ live TensorBoard logs under `tb/`.
 
 import argparse
 import pickle
+import socket
+import subprocess
+import sys
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 
@@ -26,6 +30,43 @@ from q_learning import evaluate_agent, initialize_q_table, train as run_training
 
 def build_env(env_id: str, env_kwargs: dict):
     return gym.make(env_id, render_mode="rgb_array", **env_kwargs)
+
+
+def _port_open(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.5)
+        return sock.connect_ex(("127.0.0.1", port)) == 0
+
+
+def _ensure_tensorboard(logdir: Path, port: int | None = None) -> None:
+    """Start TensorBoard in the background if nothing is already on `port`."""
+    port = config.TENSORBOARD_PORT if port is None else port
+    url = f"http://localhost:{port}/"
+    if _port_open(port):
+        print(f"TensorBoard already running at {url}")
+        return
+
+    logdir.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        sys.executable,
+        "-m",
+        "tensorboard.main",
+        "--logdir",
+        str(logdir),
+        "--port",
+        str(port),
+    ]
+    subprocess.Popen(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    print(f"Started TensorBoard at {url}  (logdir={logdir})")
+    try:
+        webbrowser.open(url)
+    except Exception:
+        pass
 
 
 def _new_run_dir(env_name: str) -> Path:
@@ -60,7 +101,7 @@ def _write_run_log(
         f"trained_at: {datetime.now().isoformat(timespec='seconds')}",
         f"mean_reward: {mean_reward:.4f}",
         f"std_reward: {std_reward:.4f}",
-        f"tensorboard: tensorboard --logdir {run_dir / 'tb'}",
+        f"tensorboard: tensorboard --logdir {config.RUNS_FOLDER}",
         "",
         "hyperparameters:",
     ]
@@ -72,13 +113,20 @@ def _write_run_log(
     return log_path
 
 
-def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = None):
+def train(
+    env_name: str = config.DEFAULT_ENVIRONMENT,
+    overrides: dict | None = None,
+    auto_tensorboard: bool | None = None,
+):
     """Train a fresh Q-table for `env_name` and pickle it under `runs/`.
 
     Hyperparameters come from `config.ENVIRONMENTS[env_name]["train_kwargs"]`.
     Pass `overrides` to replace selected keys for this run only (used by
     sweep.py). The run folder is created up front so TensorBoard can stream
     live metrics during training; a final PNG is written when training ends.
+
+    `auto_tensorboard` defaults to `config.AUTO_START_TENSORBOARD`. Sweeps
+    should pass False so each trial does not spawn a new server.
     """
     settings = config.ENVIRONMENTS[env_name]
     env = build_env(settings["env_id"], settings["env_kwargs"])
@@ -95,7 +143,14 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = N
     tb_dir = run_dir / "tb"
     tb_writer = SummaryWriter(log_dir=str(tb_dir))
     print(f"Run folder:   {run_dir}")
-    print(f"Live curves:  tensorboard --logdir {tb_dir}")
+
+    if auto_tensorboard is None:
+        auto_tensorboard = config.AUTO_START_TENSORBOARD
+    if auto_tensorboard:
+        # Point at the whole runs/ tree so every trial appears in one dashboard.
+        _ensure_tensorboard(Path(config.RUNS_FOLDER))
+    else:
+        print(f"Live curves:  tensorboard --logdir {Path(config.RUNS_FOLDER)}")
 
     # For long runs, logging every episode to TB is fine but can add overhead;
     # default to every episode under 50k, otherwise every 10.
@@ -118,6 +173,7 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, overrides: dict | None = N
             lr_decay_rate=train_kwargs.get("lr_decay_rate", 0.0),
             train_eval_every=train_kwargs.get("train_eval_every", 0),
             n_train_eval_episodes=train_kwargs.get("n_train_eval_episodes", 50),
+            eval_seed=train_kwargs.get("eval_seed") or None,
             tb_writer=tb_writer,
             tb_log_every=tb_log_every,
         )

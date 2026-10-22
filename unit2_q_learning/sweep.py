@@ -123,7 +123,7 @@ def run_sweep():
             print(f"Overrides: {overrides}")
             print("=" * 72)
 
-            outcome = train(ENV_NAME, overrides=overrides)
+            outcome = train(ENV_NAME, overrides=overrides, auto_tensorboard=False)
             repeat_scores.append(outcome["mean_reward"])
             repeat_paths.append(str(outcome["run_dir"]))
 

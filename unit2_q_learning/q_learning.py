@@ -28,11 +28,24 @@ def epsilon_greedy_policy(qtable: np.ndarray, state: int, epsilon: float, env) -
     return env.action_space.sample()
 
 
-def _greedy_eval_mean(env, qtable: np.ndarray, max_steps: int, n_episodes: int) -> float:
-    """Quiet mean reward under the greedy policy (used for mid-training curves)."""
+def _greedy_eval_mean(
+    env,
+    qtable: np.ndarray,
+    max_steps: int,
+    n_episodes: int,
+    seed: list[int] | None = None,
+) -> float:
+    """Quiet mean reward under the greedy policy (used for mid-training curves).
+
+    If `seed` is provided, episode i uses `seed[i]` so mid-train checks are
+    comparable across the run (and across experiments when the list is fixed).
+    """
     rewards = []
-    for _ in range(n_episodes):
-        state, _info = env.reset()
+    for i in range(n_episodes):
+        if seed:
+            state, _info = env.reset(seed=seed[i])
+        else:
+            state, _info = env.reset()
         total = 0.0
         for _step in range(max_steps):
             action = greedy_policy(qtable, state)
@@ -58,6 +71,7 @@ def train(
     lr_decay_rate: float = 0.0,
     train_eval_every: int = 0,
     n_train_eval_episodes: int = 50,
+    eval_seed: list[int] | None = None,
     tb_writer=None,
     tb_log_every: int = 1,
 ) -> tuple[np.ndarray, dict]:
@@ -123,7 +137,12 @@ def train(
             tb_writer.add_scalar("train/learning_rate", float(lr), episode)
 
         if train_eval_every > 0 and (episode + 1) % train_eval_every == 0:
-            eval_mean = _greedy_eval_mean(env, qtable, max_steps, n_train_eval_episodes)
+            mid_seeds = None
+            if eval_seed:
+                mid_seeds = eval_seed[:n_train_eval_episodes]
+            eval_mean = _greedy_eval_mean(
+                env, qtable, max_steps, n_train_eval_episodes, seed=mid_seeds
+            )
             history["eval_episode"].append(episode)
             history["eval_mean_reward"].append(eval_mean)
             if tb_writer is not None:

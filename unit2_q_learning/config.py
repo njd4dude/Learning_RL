@@ -6,6 +6,8 @@ logic itself. Each environment gets its own settings block since they don't
 share a state/action space or a training budget.
 """
 
+import random as _random
+
 # --- FrozenLake-v1 (4x4) ---
 # Non-slippery: every action goes exactly where you intend (deterministic).
 # Slippery: each action has a chance to slide sideways instead (stochastic),
@@ -18,6 +20,12 @@ FROZENLAKE_MODEL_PATH = f"{FROZENLAKE_MODEL_NAME}.pkl"
 FROZENLAKE_SLIPPERY_MODEL_NAME = "q-FrozenLake-v1-4x4-slippery"
 FROZENLAKE_SLIPPERY_MODEL_PATH = f"{FROZENLAKE_SLIPPERY_MODEL_NAME}.pkl"
 
+# Fixed eval seeds so slippery (and non-slippery) runs are scored on the same
+# slip RNG sequences. Training still uses unseeded resets. Do not reshuffle
+# casually if you want comparable mean_reward across experiments.
+_FROZENLAKE_EVAL_RNG = _random.Random(0)
+FROZENLAKE_EVAL_SEED = [_FROZENLAKE_EVAL_RNG.randint(0, 10_000) for _ in range(500)]
+
 FROZENLAKE_KWARGS = dict(
     n_training_episodes=10_000,
     learning_rate=0.7,
@@ -26,7 +34,7 @@ FROZENLAKE_KWARGS = dict(
     n_eval_episodes=100,
     max_steps=99,
     gamma=0.95,
-    eval_seed=[],
+    eval_seed=FROZENLAKE_EVAL_SEED[:100],
     max_epsilon=1.0,
     min_epsilon=0.05,
     decay_rate=0.0005,
@@ -38,19 +46,19 @@ FROZENLAKE_KWARGS = dict(
 # Slippery: decay LR so early episodes learn fast, late ones mostly settle.
 # lr = min_lr + (max_lr - min_lr) * exp(-lr_decay_rate * episode)
 FROZENLAKE_SLIPPERY_KWARGS = dict(
-    n_training_episodes=500_000,
-    learning_rate=0.7,  # starting / max LR
+    n_training_episodes=200_000,
+    learning_rate=0.09,  # starting / max LR
     min_learning_rate=0.001,
     lr_decay_rate=0.00001,  # ~near min_lr by a few hundred thousand episodes
     n_eval_episodes=500,
     max_steps=99,
     gamma=0.95,
-    eval_seed=[],
+    eval_seed=FROZENLAKE_EVAL_SEED,
     max_epsilon=1.0,
     min_epsilon=0.05,
     decay_rate=0.00005,
     train_eval_every=10_000,
-    n_train_eval_episodes=50,
+    n_train_eval_episodes=100,
 )
 
 # --- Taxi-v3 ---
@@ -117,6 +125,11 @@ USERNAME = "<your-username>"
 # --- Training runs ---
 # Each `python main.py train` writes a unique folder here with model.pkl + run.txt.
 RUNS_FOLDER = "runs"
+
+# Start TensorBoard automatically when training begins (skipped during sweeps).
+# Points at RUNS_FOLDER so every run shows up; reuses port 6006 if already open.
+AUTO_START_TENSORBOARD = True
+TENSORBOARD_PORT = 6006
 
 # --- Video recording ---
 VIDEO_FOLDER = "videos"
