@@ -136,6 +136,10 @@ def train(
                 tb_writer.add_scalar("train/episode_length", steps, episode)
                 tb_writer.add_scalar("train/epsilon", float(epsilon), episode)
                 tb_writer.add_scalar("train/learning_rate", float(lr), episode)
+                # Explicit flush on a coarse cadence so TB sees data well before
+                # the writer's flush_secs timer (important for fast tabular runs).
+                if (episode + 1) % (tb_log_every * 100) == 0:
+                    tb_writer.flush()
 
             if train_eval_every > 0 and (episode + 1) % train_eval_every == 0:
                 mid_seeds = None

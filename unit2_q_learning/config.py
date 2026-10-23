@@ -46,13 +46,13 @@ FROZENLAKE_KWARGS = dict(
 # Slippery: decay LR so early episodes learn fast, late ones mostly settle.
 # lr = min_lr + (max_lr - min_lr) * exp(-lr_decay_rate * episode)
 FROZENLAKE_SLIPPERY_KWARGS = dict(
-    n_training_episodes=200_000,
-    learning_rate=0.09,  # starting / max LR
+    n_training_episodes=500_000,
+    learning_rate=0.005,  # starting / max LR
     min_learning_rate=0.001,
     lr_decay_rate=0.00001,  # ~near min_lr by a few hundred thousand episodes
     n_eval_episodes=500,
-    max_steps=99,
-    gamma=0.95,
+    max_steps=400,  # must be >= env max_episode_steps or the loop cuts first
+    gamma=0.90,
     eval_seed=FROZENLAKE_EVAL_SEED,
     max_epsilon=1.0,
     min_epsilon=0.05,
@@ -102,7 +102,13 @@ ENVIRONMENTS = {
     ),
     "frozenlake-slippery": dict(
         env_id=FROZENLAKE_ENV_ID,
-        env_kwargs=dict(map_name=FROZENLAKE_MAP_NAME, is_slippery=True),
+        # Override Gymnasium's default TimeLimit (100) so long slippery
+        # episodes can actually run past 100 steps.
+        env_kwargs=dict(
+            map_name=FROZENLAKE_MAP_NAME,
+            is_slippery=True,
+            max_episode_steps=400,
+        ),
         model_name=FROZENLAKE_SLIPPERY_MODEL_NAME,
         model_path=FROZENLAKE_SLIPPERY_MODEL_PATH,
         train_kwargs=FROZENLAKE_SLIPPERY_KWARGS,

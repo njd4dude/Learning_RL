@@ -151,7 +151,9 @@ def train(
     # Create the run folder first so live TensorBoard logs have a place to go.
     run_dir = _new_run_dir(env_name)
     tb_dir = run_dir / "tb"
-    tb_writer = SummaryWriter(log_dir=str(tb_dir))
+    # Default flush_secs=120 + ~2k eps/s ≈ nothing on disk for ~250k episodes.
+    # Keep flushes frequent so live TensorBoard actually updates.
+    tb_writer = SummaryWriter(log_dir=str(tb_dir), flush_secs=5, max_queue=20)
     print(f"Run folder:   {run_dir}")
 
     if auto_tensorboard is None:
