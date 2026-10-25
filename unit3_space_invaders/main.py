@@ -77,6 +77,12 @@ def main() -> None:
         default=config.VEC_ENV,
         help="VecEnv type (default: subproc, for n_envs > 1 in dqn.yml)",
     )
+    p_train.add_argument(
+        "--eval-freq",
+        type=int,
+        default=None,
+        help="Evaluate every N timesteps (Zoo default 25000; -1 disables)",
+    )
 
     p_eval = sub.add_parser("evaluate", help="Score a saved model (no video)")
     p_eval.add_argument("--algo", default=config.DEFAULT_ALGO)
@@ -134,6 +140,7 @@ def main() -> None:
             ),
             device=args.device,
             vec_env=args.vec_env,
+            eval_freq=args.eval_freq,
         )
     elif args.command == "evaluate":
         evaluate_mod.evaluate(

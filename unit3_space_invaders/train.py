@@ -71,6 +71,7 @@ def train(
     auto_tensorboard: bool | None = None,
     device: str = config.DEVICE,
     vec_env: str = config.VEC_ENV,
+    eval_freq: int | None = None,
 ) -> None:
     """Kick off `rl_zoo3.train` with our defaults / overrides."""
     conf_path = Path(conf_file)
@@ -112,6 +113,8 @@ def train(
         args.extend(["--device", device])
     if vec_env:
         args.extend(["--vec-env", vec_env])
+    if eval_freq is not None:
+        args.extend(["--eval-freq", str(eval_freq)])
 
     # In-process so Ctrl+C is handled by Zoo and still writes the final zip
     # (same idea as unit2's interrupt → save partial model).
@@ -164,6 +167,12 @@ def main() -> None:
         default=config.VEC_ENV,
         help="VecEnv type (use subproc when n_envs > 1)",
     )
+    parser.add_argument(
+        "--eval-freq",
+        type=int,
+        default=None,
+        help="Evaluate every N timesteps (Zoo default 25000; -1 disables)",
+    )
     args = parser.parse_args()
 
     tb = None if args.no_tensorboard else (args.tensorboard_log or None)
@@ -179,6 +188,7 @@ def main() -> None:
         auto_tensorboard=False if args.no_auto_tensorboard or args.no_tensorboard else None,
         device=args.device,
         vec_env=args.vec_env,
+        eval_freq=args.eval_freq,
     )
 
 

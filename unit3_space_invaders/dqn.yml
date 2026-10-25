@@ -6,7 +6,7 @@ SpaceInvadersNoFrameskip-v4:
   # Pair with --vec-env subproc (train default). Try 2 if RAM/CPU is tight.
   n_envs: 16
   policy: 'CnnPolicy'
-  n_timesteps: 500_000
+  n_timesteps: 1_000_000
   buffer_size: 100000
   learning_rate: !!float 1e-4
   batch_size: 32
