@@ -70,6 +70,7 @@ def train(
     tensorboard_log: str | None = config.TENSORBOARD_LOG_FOLDER,
     auto_tensorboard: bool | None = None,
     device: str = config.DEVICE,
+    vec_env: str = config.VEC_ENV,
 ) -> None:
     """Kick off `rl_zoo3.train` with our defaults / overrides."""
     conf_path = Path(conf_file)
@@ -109,6 +110,8 @@ def train(
         args.append("--progress")
     if device:
         args.extend(["--device", device])
+    if vec_env:
+        args.extend(["--vec-env", vec_env])
 
     # In-process so Ctrl+C is handled by Zoo and still writes the final zip
     # (same idea as unit2's interrupt → save partial model).
@@ -155,6 +158,12 @@ def main() -> None:
         default=config.DEVICE,
         help='Torch device for SB3 (e.g. "auto", "cuda", "cpu")',
     )
+    parser.add_argument(
+        "--vec-env",
+        choices=["dummy", "subproc"],
+        default=config.VEC_ENV,
+        help="VecEnv type (use subproc when n_envs > 1)",
+    )
     args = parser.parse_args()
 
     tb = None if args.no_tensorboard else (args.tensorboard_log or None)
@@ -169,6 +178,7 @@ def main() -> None:
         tensorboard_log=tb,
         auto_tensorboard=False if args.no_auto_tensorboard or args.no_tensorboard else None,
         device=args.device,
+        vec_env=args.vec_env,
     )
 
 

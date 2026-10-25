@@ -71,6 +71,12 @@ def main() -> None:
         default=config.DEVICE,
         help='Torch device (default: auto → CUDA when available)',
     )
+    p_train.add_argument(
+        "--vec-env",
+        choices=["dummy", "subproc"],
+        default=config.VEC_ENV,
+        help="VecEnv type (default: subproc, for n_envs > 1 in dqn.yml)",
+    )
 
     p_eval = sub.add_parser("evaluate", help="Score a saved model (no video)")
     p_eval.add_argument("--algo", default=config.DEFAULT_ALGO)
@@ -127,6 +133,7 @@ def main() -> None:
                 False if args.no_auto_tensorboard or args.no_tensorboard else None
             ),
             device=args.device,
+            vec_env=args.vec_env,
         )
     elif args.command == "evaluate":
         evaluate_mod.evaluate(

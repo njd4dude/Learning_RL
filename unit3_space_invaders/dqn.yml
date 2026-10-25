@@ -2,6 +2,9 @@ SpaceInvadersNoFrameskip-v4:
   env_wrapper:
     - stable_baselines3.common.atari_wrappers.AtariWrapper
   frame_stack: 4
+  # Parallel Atari envs (CPU) so the GPU isn't waiting on one emulator.
+  # Pair with --vec-env subproc (train default). Try 2 if RAM/CPU is tight.
+  n_envs: 16
   policy: 'CnnPolicy'
   n_timesteps: 500_000
   buffer_size: 100000

@@ -34,3 +34,5 @@ DEFAULT_ENVIRONMENT = "space-invaders"
 
 # RL Zoo / SB3 device. "auto" picks CUDA when a GPU build of Torch is installed.
 DEVICE = "auto"
+# "subproc" runs each env in its own process (best with n_envs > 1 in dqn.yml).
+VEC_ENV = "subproc"
