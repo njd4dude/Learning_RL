@@ -1,0 +1,16 @@
+# Unit 3: DQN on Atari via RL Baselines3 Zoo
+gymnasium[atari,accept-rom-license]
+stable-baselines3
+sb3-contrib
+rl_zoo3
+huggingface_hub
+huggingface_sb3
+imageio
+imageio-ffmpeg
+# Install a CUDA wheel for GPU (RTX 50-series needs cu130/cu132, not cu126):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu132
+torch
+tensorboard
+pyyaml
+tqdm
+rich

@@ -8,5 +8,6 @@ checkpoints/
 logs/
 videos/
 runs/
+tb/
 *.zip
 *.pkl
