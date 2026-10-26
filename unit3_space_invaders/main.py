@@ -83,6 +83,15 @@ def main() -> None:
         default=None,
         help="Evaluate every N timesteps (Zoo default 25000; -1 disables)",
     )
+    p_train.add_argument(
+        "-i",
+        "--trained-agent",
+        default=None,
+        help=(
+            "Resume from a .zip in-place (same run folder, continuing "
+            "timestep counter; -n is additional steps)"
+        ),
+    )
 
     p_eval = sub.add_parser("evaluate", help="Score a saved model (no video)")
     p_eval.add_argument("--algo", default=config.DEFAULT_ALGO)
@@ -141,6 +150,7 @@ def main() -> None:
             device=args.device,
             vec_env=args.vec_env,
             eval_freq=args.eval_freq,
+            trained_agent=args.trained_agent,
         )
     elif args.command == "evaluate":
         evaluate_mod.evaluate(

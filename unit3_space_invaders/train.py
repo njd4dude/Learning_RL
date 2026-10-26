@@ -19,7 +19,7 @@ import webbrowser
 from pathlib import Path
 
 import config
-from zoo import run_zoo_train_inprocess
+from zoo import run_zoo_train_inprocess, run_zoo_train_resume
 
 
 def _port_open(port: int) -> bool:
@@ -72,6 +72,7 @@ def train(
     device: str = config.DEVICE,
     vec_env: str = config.VEC_ENV,
     eval_freq: int | None = None,
+    trained_agent: str | None = None,
 ) -> None:
     """Kick off `rl_zoo3.train` with our defaults / overrides."""
     conf_path = Path(conf_file)
@@ -115,6 +116,16 @@ def train(
         args.extend(["--vec-env", vec_env])
     if eval_freq is not None:
         args.extend(["--eval-freq", str(eval_freq)])
+    if trained_agent:
+        agent_path = Path(trained_agent)
+        if not agent_path.is_file() or agent_path.suffix != ".zip":
+            raise FileNotFoundError(
+                f"trained-agent must be a .zip file: {agent_path.resolve()}"
+            )
+        args.extend(["-i", str(agent_path)])
+        # Unit1-style: same run folder + continuing timesteps (not Zoo's fresh exp).
+        run_zoo_train_resume(args, agent_path)
+        return
 
     # In-process so Ctrl+C is handled by Zoo and still writes the final zip
     # (same idea as unit2's interrupt → save partial model).
@@ -173,6 +184,15 @@ def main() -> None:
         default=None,
         help="Evaluate every N timesteps (Zoo default 25000; -1 disables)",
     )
+    parser.add_argument(
+        "-i",
+        "--trained-agent",
+        default=None,
+        help=(
+            "Resume from a .zip in-place (same run folder, continuing "
+            "timestep counter; -n is additional steps)"
+        ),
+    )
     args = parser.parse_args()
 
     tb = None if args.no_tensorboard else (args.tensorboard_log or None)
@@ -189,6 +209,7 @@ def main() -> None:
         device=args.device,
         vec_env=args.vec_env,
         eval_freq=args.eval_freq,
+        trained_agent=args.trained_agent,
     )
 
 
