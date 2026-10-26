@@ -2,6 +2,7 @@
 
 Usage:
     python main.py train [--env space-invaders|beam-rider] [-n N]
+    python main.py train -i latest -n 500000
     python main.py evaluate [--exp-id 1]
     python main.py record [--exp-id 1] [--episodes 2]
     python main.py push --orga YOUR_USER [--repo-name NAME]
@@ -88,9 +89,14 @@ def main() -> None:
         "--trained-agent",
         default=None,
         help=(
-            "Resume from a .zip in-place (same run folder, continuing "
-            "timestep counter; -n is additional steps)"
+            "Load weights into a new run folder: .zip path, 'latest', or exp id "
+            "(timestep/ε continue; -n is additional steps)"
         ),
+    )
+    p_train.add_argument(
+        "--load-best",
+        action="store_true",
+        help="With -i latest/exp-id, load best_model.zip instead of the final zip",
     )
 
     p_eval = sub.add_parser("evaluate", help="Score a saved model (no video)")
@@ -151,6 +157,7 @@ def main() -> None:
             vec_env=args.vec_env,
             eval_freq=args.eval_freq,
             trained_agent=args.trained_agent,
+            load_best=args.load_best,
         )
     elif args.command == "evaluate":
         evaluate_mod.evaluate(

@@ -22,6 +22,88 @@ import config
 from zoo import run_zoo_train_inprocess, run_zoo_train_resume
 
 
+def resolve_trained_agent(
+    spec: str,
+    *,
+    algo: str = config.DEFAULT_ALGO,
+    env_id: str = config.DEFAULT_ENV,
+    log_folder: str = config.LOG_FOLDER,
+    load_best: bool = False,
+) -> Path:
+    """Resolve ``-i`` to a concrete ``.zip`` path.
+
+    Accepts a filesystem path, ``latest`` / ``0`` (newest run), or an exp id
+    like ``16``. Prefers the final env zip; falls back to ``best_model.zip``
+    if that run was interrupted before the final save.
+    """
+    from huggingface_sb3 import EnvironmentName
+    from rl_zoo3.utils import get_latest_run_id, get_model_path
+
+    raw = Path(spec)
+    if raw.is_file() and raw.suffix == ".zip":
+        return raw.resolve()
+
+    key = spec.strip().lower()
+    if key in {"latest", "0"}:
+        exp_id = 0
+    elif spec.isdigit():
+        exp_id = int(spec)
+    else:
+        raise FileNotFoundError(
+            f"trained-agent must be a .zip path, 'latest', or an exp id; got: {spec!r}"
+        )
+
+    env_name = EnvironmentName(env_id)
+    algo_dir = Path(log_folder) / algo
+    if exp_id == 0:
+        exp_id = get_latest_run_id(str(algo_dir), env_name)
+        print(f"Loading latest experiment, id={exp_id}")
+
+    # Walk downward so an interrupted newest run without a zip doesn't block resume.
+    for candidate_id in range(exp_id, 0, -1):
+        try:
+            _, model_path, _ = get_model_path(
+                candidate_id,
+                log_folder,
+                algo,
+                env_name,
+                load_best=load_best,
+            )
+        except (ValueError, AssertionError, FileNotFoundError):
+            # Prefer best_model if final zip is missing (Ctrl+C before save).
+            if not load_best:
+                best = algo_dir / f"{env_name}_{candidate_id}" / "best_model.zip"
+                if best.is_file():
+                    if candidate_id != exp_id:
+                        print(
+                            f"No final zip in exp {exp_id}; "
+                            f"using best_model from exp {candidate_id}"
+                        )
+                    else:
+                        print(f"No final zip in exp {candidate_id}; using best_model.zip")
+                    return best.resolve()
+            continue
+
+        path = Path(model_path)
+        if path.suffix != ".zip":
+            path = Path(f"{model_path}.zip")
+        if path.is_file():
+            if candidate_id != exp_id:
+                print(f"No usable zip in exp {exp_id}; using exp {candidate_id}")
+            return path.resolve()
+
+        if not load_best:
+            best = path.parent / "best_model.zip"
+            if best.is_file():
+                print(f"No final zip in exp {candidate_id}; using best_model.zip")
+                return best.resolve()
+
+    raise FileNotFoundError(
+        f"No checkpoint zip found under {algo_dir} for {env_id} "
+        f"(tried exp ids {exp_id} → 1)"
+    )
+
+
 def _port_open(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(0.5)
@@ -73,6 +155,7 @@ def train(
     vec_env: str = config.VEC_ENV,
     eval_freq: int | None = None,
     trained_agent: str | None = None,
+    load_best: bool = False,
 ) -> None:
     """Kick off `rl_zoo3.train` with our defaults / overrides."""
     conf_path = Path(conf_file)
@@ -117,13 +200,16 @@ def train(
     if eval_freq is not None:
         args.extend(["--eval-freq", str(eval_freq)])
     if trained_agent:
-        agent_path = Path(trained_agent)
-        if not agent_path.is_file() or agent_path.suffix != ".zip":
-            raise FileNotFoundError(
-                f"trained-agent must be a .zip file: {agent_path.resolve()}"
-            )
+        agent_path = resolve_trained_agent(
+            trained_agent,
+            algo=algo,
+            env_id=env_id,
+            log_folder=log_folder,
+            load_best=load_best,
+        )
+        print(f"Resuming from {agent_path}")
         args.extend(["-i", str(agent_path)])
-        # Unit1-style: same run folder + continuing timesteps (not Zoo's fresh exp).
+        # New Zoo run folder + loaded weights; timesteps/ε keep going.
         run_zoo_train_resume(args, agent_path)
         return
 
@@ -189,9 +275,14 @@ def main() -> None:
         "--trained-agent",
         default=None,
         help=(
-            "Resume from a .zip in-place (same run folder, continuing "
-            "timestep counter; -n is additional steps)"
+            "Load weights into a new run folder: .zip path, 'latest', or exp id "
+            "(timestep/ε continue; -n is additional steps)"
         ),
+    )
+    parser.add_argument(
+        "--load-best",
+        action="store_true",
+        help="With -i latest/exp-id, load best_model.zip instead of the final zip",
     )
     args = parser.parse_args()
 
@@ -210,6 +301,7 @@ def main() -> None:
         vec_env=args.vec_env,
         eval_freq=args.eval_freq,
         trained_agent=args.trained_agent,
+        load_best=args.load_best,
     )
 
 
