@@ -9,5 +9,6 @@ logs/
 videos/
 runs/
 tb/
+hub/
 *.zip
 *.pkl
