@@ -23,6 +23,7 @@ import rl_zoo3.import_envs  # noqa: F401
 from rl_zoo3 import ALGOS, create_test_env, get_saved_hyperparams
 from rl_zoo3.exp_manager import ExperimentManager
 from rl_zoo3.utils import get_model_path
+from stable_baselines3.common.atari_wrappers import MaxAndSkipEnv
 
 
 def _as_rgb_frame(render_out) -> np.ndarray:
@@ -36,6 +37,29 @@ def _as_rgb_frame(render_out) -> np.ndarray:
     if frame.dtype != np.uint8:
         frame = np.clip(frame, 0, 255).astype(np.uint8)
     return frame
+
+
+def _find_max_and_skip(env) -> MaxAndSkipEnv | None:
+    """Return the MaxAndSkipEnv wrapping the first sub-env, if there is one."""
+    inner = env.unwrapped.envs[0]
+    while inner is not None:
+        if isinstance(inner, MaxAndSkipEnv):
+            return inner
+        inner = getattr(inner, "env", None)
+    return None
+
+
+def _step_frame(env, skip_env: MaxAndSkipEnv | None) -> np.ndarray:
+    """Frame for the step just taken.
+
+    Atari games like Space Invaders draw some sprites only on alternate
+    emulator frames, so a single render() every 4th frame can miss them
+    (e.g. the player's shots). Use the same max over the last two raw
+    frames that the agent sees instead.
+    """
+    if skip_env is not None and skip_env._obs_buffer.ndim == 4:
+        return _as_rgb_frame(skip_env._obs_buffer.max(axis=0))
+    return _as_rgb_frame(env.render())
 
 
 def _resolve_model(
@@ -114,6 +138,8 @@ def record(
     out_root = Path(out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
 
+    skip_env = _find_max_and_skip(env)
+
     obs = env.reset()
     frames: list[np.ndarray] = [_as_rgb_frame(env.render())]
     saved: list[Path] = []
@@ -135,7 +161,9 @@ def record(
             )
             obs, _reward, done, infos = env.step(action)
             episode_start = done
-            frames.append(_as_rgb_frame(env.render()))
+            # On done the VecEnv has already auto-reset, so render() would show
+            # the next episode; the skip buffer still holds this one's last frames.
+            frames.append(_step_frame(env, skip_env))
             steps += 1
 
             episode_info = None
