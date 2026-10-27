@@ -51,13 +51,21 @@ def run_zoo_train_inprocess(args: Sequence[str]) -> None:
         sys.argv = old_argv
 
 
-def run_zoo_train_resume(args: Sequence[str], checkpoint: Path) -> None:
+def run_zoo_train_resume(
+    args: Sequence[str],
+    checkpoint: Path,
+    *,
+    resume_warmup: int = 0,
+) -> None:
     """Continue from checkpoint weights in a fresh Zoo experiment folder.
 
     Zoo's plain ``-i`` already creates a new ``…_N`` directory and loads the
     zip. We only patch ``learn`` so ``reset_num_timesteps=False``: the step
     counter and exploration schedule keep going (ε stays low after a long
     run) instead of resetting as if training started from scratch.
+
+    ``resume_warmup`` pushes ``learning_starts`` forward so an empty replay
+    buffer can refill before gradient updates (zips usually omit the buffer).
     """
     from rl_zoo3 import exp_manager as em_mod
     from rl_zoo3.exp_manager import AsyncEval
@@ -84,6 +92,13 @@ def run_zoo_train_resume(args: Sequence[str], checkpoint: Path) -> None:
             f"Already trained for {model.num_timesteps:,} timesteps; "
             f"training {self.n_timesteps:,} more."
         )
+
+        if resume_warmup > 0 and hasattr(model, "learning_starts"):
+            model.learning_starts = int(model.num_timesteps) + int(resume_warmup)
+            print(
+                f"Resume warm-up: collecting {resume_warmup:,} steps before "
+                f"updates (learning_starts={model.learning_starts:,})."
+            )
 
         kwargs: dict = {}
         if self.log_interval > -1:

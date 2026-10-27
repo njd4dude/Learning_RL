@@ -4,6 +4,7 @@ Usage:
     python train.py
     python train.py --env BeamRiderNoFrameskip-v4 -c dqn.yml
     python train.py -n 100000   # override yaml n_timesteps
+    python train.py -i latest -n 500000   # resume (+ 50k buffer warm-up)
 
 By default training logs TensorBoard scalars under `tb/` and auto-starts
 TensorBoard on port 6006 (same idea as unit2).
@@ -156,6 +157,7 @@ def train(
     eval_freq: int | None = None,
     trained_agent: str | None = None,
     load_best: bool = False,
+    resume_warmup: int | None = None,
 ) -> None:
     """Kick off `rl_zoo3.train` with our defaults / overrides."""
     conf_path = Path(conf_file)
@@ -209,8 +211,11 @@ def train(
         )
         print(f"Resuming from {agent_path}")
         args.extend(["-i", str(agent_path)])
+        warmup = (
+            config.RESUME_WARMUP_STEPS if resume_warmup is None else resume_warmup
+        )
         # New Zoo run folder + loaded weights; timesteps/ε keep going.
-        run_zoo_train_resume(args, agent_path)
+        run_zoo_train_resume(args, agent_path, resume_warmup=warmup)
         return
 
     # In-process so Ctrl+C is handled by Zoo and still writes the final zip
@@ -284,6 +289,16 @@ def main() -> None:
         action="store_true",
         help="With -i latest/exp-id, load best_model.zip instead of the final zip",
     )
+    parser.add_argument(
+        "--resume-warmup",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "With -i, collect N steps before gradient updates to refill an empty "
+            f"replay buffer (default: {config.RESUME_WARMUP_STEPS}; 0 disables)"
+        ),
+    )
     args = parser.parse_args()
 
     tb = None if args.no_tensorboard else (args.tensorboard_log or None)
@@ -302,6 +317,7 @@ def main() -> None:
         eval_freq=args.eval_freq,
         trained_agent=args.trained_agent,
         load_best=args.load_best,
+        resume_warmup=args.resume_warmup,
     )
 
 

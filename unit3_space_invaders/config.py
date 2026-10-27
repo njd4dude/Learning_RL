@@ -36,3 +36,6 @@ DEFAULT_ENVIRONMENT = "space-invaders"
 DEVICE = "auto"
 # "subproc" runs each env in its own process (best with n_envs > 1 in dqn.yml).
 VEC_ENV = "subproc"
+# On -i resume the zip has weights but usually no replay buffer. Collect this
+# many steps before gradient updates so batches aren't tiny/correlated.
+RESUME_WARMUP_STEPS = 50_000

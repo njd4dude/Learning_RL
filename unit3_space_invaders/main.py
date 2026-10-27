@@ -2,7 +2,7 @@
 
 Usage:
     python main.py train [--env space-invaders|beam-rider] [-n N]
-    python main.py train -i latest -n 500000
+    python main.py train -i latest -n 500000 --resume-warmup 100000
     python main.py evaluate [--exp-id 1]
     python main.py record [--exp-id 1] [--episodes 2]
     python main.py push --orga YOUR_USER [--repo-name NAME]
@@ -98,6 +98,16 @@ def main() -> None:
         action="store_true",
         help="With -i latest/exp-id, load best_model.zip instead of the final zip",
     )
+    p_train.add_argument(
+        "--resume-warmup",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "With -i, collect N steps before updates to refill an empty replay "
+            f"buffer (default: {config.RESUME_WARMUP_STEPS}; 0 disables)"
+        ),
+    )
 
     p_eval = sub.add_parser("evaluate", help="Score a saved model (no video)")
     p_eval.add_argument("--algo", default=config.DEFAULT_ALGO)
@@ -158,6 +168,7 @@ def main() -> None:
             eval_freq=args.eval_freq,
             trained_agent=args.trained_agent,
             load_best=args.load_best,
+            resume_warmup=args.resume_warmup,
         )
     elif args.command == "evaluate":
         evaluate_mod.evaluate(
