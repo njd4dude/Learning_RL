@@ -55,7 +55,10 @@ def main() -> None:
         "-tb",
         "--tensorboard-log",
         default=config.TENSORBOARD_LOG_FOLDER,
-        help="TensorBoard log dir (default: tb/)",
+        help=(
+            "TensorBoard --logdir root (default: logs/). Events live in each "
+            "run's tb/ subfolder next to monitors and zips"
+        ),
     )
     p_train.add_argument(
         "--no-tensorboard",

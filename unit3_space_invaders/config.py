@@ -11,8 +11,9 @@ DEFAULT_ALGO = "dqn"
 DEFAULT_ENV = "SpaceInvadersNoFrameskip-v4"
 DEFAULT_CONFIG = "dqn.yml"
 LOG_FOLDER = "logs"
-# SB3 / RL Zoo TensorBoard root (passed as `-tb`). Live curves land here.
-TENSORBOARD_LOG_FOLDER = "tb"
+# TensorBoard server watches this tree. Event files live in each Zoo run's
+# ``<logs>/<algo>/<env>_N/tb/`` (not a separate tb/ counter).
+TENSORBOARD_LOG_FOLDER = LOG_FOLDER
 AUTO_START_TENSORBOARD = True
 TENSORBOARD_PORT = 6006
 VIDEO_FOLDER = "videos"

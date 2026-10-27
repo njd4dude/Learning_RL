@@ -39,11 +39,12 @@ Run commands from `unit3_space_invaders/` so `dqn.yml` and `logs/` resolve.
 
 ```bash
 # Train (reads hyperparams from dqn.yml; override steps with -n)
-# TensorBoard logs go to tb/ and the server auto-starts on :6006
-# dqn.yml sets n_envs: 4; train defaults to --vec-env subproc
+# TensorBoard events land in logs/dqn/<env>_N/tb/ (with that run's files);
+# the server auto-starts on :6006 watching logs/
+# dqn.yml sets n_envs; train defaults to --vec-env subproc
 python main.py train
 python main.py train -n 100000
-# tensorboard --logdir tb/   # if you skipped auto-start
+# tensorboard --logdir logs/   # if you skipped auto-start
 
 # Score the latest (or a specific) experiment
 python main.py evaluate
@@ -78,3 +79,6 @@ Each module also works standalone, e.g. `python train.py -n 100000` or
 - **Ctrl+C** during `train` is supported: RL Zoo catches the interrupt and still
   saves the current model into the experiment folder (training runs in-process
   for that reason).
+- Each experiment folder under `logs/dqn/<env>_N/` holds monitors, zips, config,
+  **and** TensorBoard events in a `tb/` subfolder. Point TensorBoard at `logs/`
+  so run names match those folders (e.g. `dqn/SpaceInvaders…_40/tb`).

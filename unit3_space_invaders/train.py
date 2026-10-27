@@ -6,8 +6,9 @@ Usage:
     python train.py -n 100000   # override yaml n_timesteps
     python train.py -i latest -n 500000   # resume (+ 50k buffer warm-up)
 
-By default training logs TensorBoard scalars under `tb/` and auto-starts
-TensorBoard on port 6006 (same idea as unit2).
+By default TensorBoard events are written under each Zoo run folder
+(`logs/<algo>/<env>_N/tb/`) and TensorBoard auto-starts on port 6006
+watching `logs/`.
 """
 
 from __future__ import annotations
@@ -181,13 +182,16 @@ def train(
         str(conf_path),
     ]
     if tensorboard_log:
-        tb_dir = Path(tensorboard_log)
-        tb_dir.mkdir(parents=True, exist_ok=True)
-        args.extend(["-tb", str(tb_dir)])
+        # Non-empty `-tb` enables Zoo/SB3 logging; zoo.py redirects events into
+        # each run's ``save_path/tb/``. The server watches the log tree so run
+        # names match experiment folders (e.g. …/SpaceInvaders…_40/tb).
+        tb_watch = Path(tensorboard_log)
+        tb_watch.mkdir(parents=True, exist_ok=True)
+        args.extend(["-tb", str(tb_watch)])
         if auto_tensorboard:
-            _ensure_tensorboard(tb_dir)
+            _ensure_tensorboard(tb_watch)
         else:
-            print(f"Live curves:  tensorboard --logdir {tb_dir}")
+            print(f"Live curves:  tensorboard --logdir {tb_watch}")
 
     if n_timesteps is not None:
         args.extend(["-n", str(n_timesteps)])
@@ -246,7 +250,10 @@ def main() -> None:
         "-tb",
         "--tensorboard-log",
         default=config.TENSORBOARD_LOG_FOLDER,
-        help="TensorBoard log dir (empty string to disable)",
+        help=(
+            "TensorBoard --logdir root (default: logs/). Events for each run "
+            "are written under that run's own tb/ subfolder"
+        ),
     )
     parser.add_argument(
         "--no-tensorboard",

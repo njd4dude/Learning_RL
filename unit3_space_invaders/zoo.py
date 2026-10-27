@@ -7,6 +7,10 @@ Zoo's entrypoints (`rl_zoo3.train`, `.enjoy`, …) parse `sys.argv` themselves.
   process so Ctrl+C is caught by Zoo (it saves the model after interrupt).
 - `run_zoo_train_resume`: load weights into a *new* run folder, but keep the
   timestep counter / exploration schedule going (unlike Zoo's default `-i`).
+
+TensorBoard: Zoo+SB3 normally write `tb/<env>/DQN_N` with a counter independent
+of `logs/<algo>/<env>_N`. We redirect events into each run's own ``tb/``
+subfolder so curves and configs share one directory.
 """
 
 from __future__ import annotations
@@ -14,7 +18,9 @@ from __future__ import annotations
 import subprocess
 import sys
 from collections.abc import Sequence
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 
 def run_zoo(module: str, args: Sequence[str]) -> int:
@@ -32,6 +38,53 @@ def run_zoo_checked(module: str, args: Sequence[str]) -> None:
         raise SystemExit(code)
 
 
+def tb_dir_for_run(save_path: str | Path) -> Path:
+    """Event files for one Zoo experiment live here (next to monitors / zips)."""
+    return Path(save_path) / "tb"
+
+
+def attach_run_tensorboard(model, save_path: str | Path, *, verbose: int = 1) -> Path:
+    """Point SB3's logger at ``<save_path>/tb`` (no separate DQN_N counter)."""
+    from stable_baselines3.common.logger import configure
+
+    tb_dir = tb_dir_for_run(save_path)
+    tb_dir.mkdir(parents=True, exist_ok=True)
+    formats = ["stdout", "tensorboard"] if verbose >= 1 else ["tensorboard"]
+    model.set_logger(configure(str(tb_dir), format_strings=formats))
+    print(f"TensorBoard events: {tb_dir}")
+    return tb_dir
+
+
+@contextmanager
+def _colocated_tensorboard_patches() -> Iterator[None]:
+    """Redirect Zoo TB writes into each experiment's ``save_path/tb``."""
+    from rl_zoo3 import exp_manager as em_mod
+
+    original_init = em_mod.ExperimentManager.__init__
+    original_learn = em_mod.ExperimentManager.learn
+
+    def patched_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        # Zoo sets tensorboard_log to ``< -tb >/<env>``; SB3 would then create
+        # ``…/DQN_N`` with its own counter. Keep TB enabled but pin the path to
+        # this run folder; ``attach_run_tensorboard`` writes the actual events.
+        if self.tensorboard_log is not None:
+            self.tensorboard_log = self.save_path
+
+    def patched_learn(self, model):
+        if self.tensorboard_log:
+            attach_run_tensorboard(model, self.save_path, verbose=self.verbose)
+        return original_learn(self, model)
+
+    em_mod.ExperimentManager.__init__ = patched_init  # type: ignore[method-assign]
+    em_mod.ExperimentManager.learn = patched_learn  # type: ignore[method-assign]
+    try:
+        yield
+    finally:
+        em_mod.ExperimentManager.__init__ = original_init  # type: ignore[method-assign]
+        em_mod.ExperimentManager.learn = original_learn  # type: ignore[method-assign]
+
+
 def run_zoo_train_inprocess(args: Sequence[str]) -> None:
     """Run RL Zoo training in-process so KeyboardInterrupt still saves the model.
 
@@ -42,11 +95,12 @@ def run_zoo_train_inprocess(args: Sequence[str]) -> None:
     from rl_zoo3.train import train as zoo_train
 
     argv = ["rl_zoo3.train", *args]
-    print(">", " ".join([sys.executable, "-m", *argv]))
+    print(">", " ".join([sys.executable, "-u", "-m", *argv]))
     old_argv = sys.argv
     sys.argv = argv
     try:
-        zoo_train()
+        with _colocated_tensorboard_patches():
+            zoo_train()
     finally:
         sys.argv = old_argv
 
@@ -70,21 +124,13 @@ def run_zoo_train_resume(
     from rl_zoo3 import exp_manager as em_mod
     from rl_zoo3.exp_manager import AsyncEval
     from stable_baselines3.common.base_class import BaseAlgorithm
-    from stable_baselines3.common.utils import configure_logger
 
     original_learn = em_mod.ExperimentManager.learn
 
     def patched_learn(self, model: BaseAlgorithm) -> None:
-        # New TB subfolder for this experiment; x-axis continues prior steps.
+        # Co-locate TB under this new run folder (same as a fresh train).
         if self.tensorboard_log:
-            logger = configure_logger(
-                self.verbose,
-                self.tensorboard_log,
-                tb_log_name=self.algo.upper(),
-                reset_num_timesteps=True,
-            )
-            model.set_logger(logger)
-            print(f"Logging this run to {logger.dir}")
+            attach_run_tensorboard(model, self.save_path, verbose=self.verbose)
 
         print(f"Loaded weights from {checkpoint}")
         print(f"New experiment folder: {self.save_path}")
@@ -135,8 +181,28 @@ def run_zoo_train_resume(
             except (EOFError, KeyboardInterrupt):
                 pass
 
+    # Init patch only (learn is the resume-aware version below).
+    original_init = em_mod.ExperimentManager.__init__
+
+    def patched_init(self, *args, **kwargs):
+        original_init(self, *args, **kwargs)
+        if self.tensorboard_log is not None:
+            self.tensorboard_log = self.save_path
+
+    em_mod.ExperimentManager.__init__ = patched_init  # type: ignore[method-assign]
     em_mod.ExperimentManager.learn = patched_learn  # type: ignore[method-assign]
     try:
-        run_zoo_train_inprocess(args)
+        # Avoid stacking the default learn patch from run_zoo_train_inprocess.
+        from rl_zoo3.train import train as zoo_train
+
+        argv = ["rl_zoo3.train", *args]
+        print(">", " ".join([sys.executable, "-u", "-m", *argv]))
+        old_argv = sys.argv
+        sys.argv = argv
+        try:
+            zoo_train()
+        finally:
+            sys.argv = old_argv
     finally:
+        em_mod.ExperimentManager.__init__ = original_init  # type: ignore[method-assign]
         em_mod.ExperimentManager.learn = original_learn  # type: ignore[method-assign]
