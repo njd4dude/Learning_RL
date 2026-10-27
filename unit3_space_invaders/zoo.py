@@ -55,6 +55,70 @@ def attach_run_tensorboard(model, save_path: str | Path, *, verbose: int = 1) ->
     return tb_dir
 
 
+def fit_replay_buffer(model) -> int:
+    """Make a reloaded replay buffer match the model's ``n_envs`` / ``buffer_size``.
+
+    SB3 stores transitions as ``(buffer_size // n_envs, n_envs, …)``, so a
+    buffer saved with 16 envs breaks ``add()`` once the yaml says 12. Plain
+    (non memory-optimized) DQN transitions are independent, so we flatten them
+    oldest → newest and re-pack the most recent ones into a fresh buffer.
+
+    Returns the number of transitions available after fitting (0 = unusable).
+    """
+    old = model.replay_buffer
+    rows = old.buffer_size if old.full else old.pos
+    if old.n_envs == model.n_envs and old.buffer_size == max(
+        model.buffer_size // model.n_envs, 1
+    ):
+        return rows * old.n_envs
+
+    new = type(old)(
+        model.buffer_size,
+        model.observation_space,
+        model.action_space,
+        device=model.device,
+        n_envs=model.n_envs,
+        optimize_memory_usage=old.optimize_memory_usage,
+        handle_timeout_termination=old.handle_timeout_termination,
+    )
+    if old.optimize_memory_usage:
+        # next_obs is implied by the next row per env column; can't re-pack.
+        print(
+            f"Saved replay buffer has n_envs={old.n_envs} but model uses "
+            f"n_envs={model.n_envs} (optimize_memory_usage); discarding it."
+        )
+        model.replay_buffer = new
+        return 0
+    import numpy as np
+
+    # Chronological order: when full, the oldest row sits at ``pos``.
+    start = old.pos if old.full else 0
+    total = rows * old.n_envs
+    keep_rows = min(total // new.n_envs, new.buffer_size)
+    keep = keep_rows * new.n_envs
+
+    fields = ("observations", "next_observations", "actions", "rewards", "dones", "timeouts")
+    chunk = 8192  # transitions per copy, keeps peak RAM low for image obs
+    for a in range(0, keep, chunk):
+        flat_idx = np.arange(total - keep + a, total - keep + min(a + chunk, keep))
+        src_rows = (start + flat_idx // old.n_envs) % old.buffer_size
+        src_cols = flat_idx % old.n_envs
+        for name in fields:
+            dst = getattr(new, name)
+            dst.reshape(-1, *dst.shape[2:])[a : a + len(flat_idx)] = getattr(old, name)[
+                src_rows, src_cols
+            ]
+
+    new.pos = keep_rows % new.buffer_size
+    new.full = keep_rows == new.buffer_size
+    model.replay_buffer = new
+    print(
+        f"Re-packed replay buffer n_envs {old.n_envs} -> {new.n_envs}: "
+        f"kept {keep:,} of {total:,} transitions."
+    )
+    return keep
+
+
 @contextmanager
 def _colocated_tensorboard_patches() -> Iterator[None]:
     """Redirect Zoo TB writes into each experiment's ``save_path/tb``."""
@@ -139,7 +203,18 @@ def run_zoo_train_resume(
             f"training {self.n_timesteps:,} more."
         )
 
-        if resume_warmup > 0 and hasattr(model, "learning_starts"):
+        # Zoo auto-loads ``replay_buffer.pkl`` sitting next to the checkpoint.
+        buffered = 0
+        if (checkpoint.parent / "replay_buffer.pkl").is_file() and hasattr(
+            model, "replay_buffer"
+        ):
+            buffered = fit_replay_buffer(model)
+            if buffered:
+                print(f"Resumed with {buffered:,} transitions in the replay buffer.")
+        else:
+            print(f"No replay_buffer.pkl next to {checkpoint.name}; buffer starts empty.")
+
+        if not buffered and resume_warmup > 0 and hasattr(model, "learning_starts"):
             model.learning_starts = int(model.num_timesteps) + int(resume_warmup)
             print(
                 f"Resume warm-up: collecting {resume_warmup:,} steps before "

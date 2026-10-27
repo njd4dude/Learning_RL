@@ -37,6 +37,10 @@ DEFAULT_ENVIRONMENT = "space-invaders"
 DEVICE = "auto"
 # "subproc" runs each env in its own process (best with n_envs > 1 in dqn.yml).
 VEC_ENV = "subproc"
-# On -i resume the zip has weights but usually no replay buffer. Collect this
-# many steps before gradient updates so batches aren't tiny/correlated.
+# Save ``replay_buffer.pkl`` next to each run's final zip so ``-i`` resumes with
+# the same transitions instead of an empty buffer (~5.6 GB for 100k Atari
+# frames; halve it with optimize_memory_usage in dqn.yml).
+SAVE_REPLAY_BUFFER = True
+# Fallback for checkpoints without a saved buffer: collect this many steps
+# before gradient updates so batches aren't tiny/correlated.
 RESUME_WARMUP_STEPS = 50_000

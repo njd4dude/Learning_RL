@@ -2,7 +2,7 @@
 
 Usage:
     python main.py train [--env space-invaders|beam-rider] [-n N]
-    python main.py train -i latest -n 500000 --resume-warmup 100000
+    python main.py train -i latest -n 500000   # reloads replay_buffer.pkl
     python main.py evaluate [--exp-id 1]
     python main.py record [--exp-id 1] [--episodes 2]
     python main.py push --orga YOUR_USER [--repo-name NAME]
@@ -107,9 +107,14 @@ def main() -> None:
         default=None,
         metavar="N",
         help=(
-            "With -i, collect N steps before updates to refill an empty replay "
-            f"buffer (default: {config.RESUME_WARMUP_STEPS}; 0 disables)"
+            "With -i and no saved replay buffer, collect N steps before updates "
+            f"(default: {config.RESUME_WARMUP_STEPS}; 0 disables)"
         ),
+    )
+    p_train.add_argument(
+        "--no-save-replay-buffer",
+        action="store_true",
+        help="Don't write replay_buffer.pkl (saves disk; resume falls back to warm-up)",
     )
 
     p_eval = sub.add_parser("evaluate", help="Score a saved model (no video)")
@@ -172,6 +177,7 @@ def main() -> None:
             trained_agent=args.trained_agent,
             load_best=args.load_best,
             resume_warmup=args.resume_warmup,
+            save_replay_buffer=not args.no_save_replay_buffer,
         )
     elif args.command == "evaluate":
         evaluate_mod.evaluate(

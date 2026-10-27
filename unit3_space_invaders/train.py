@@ -4,7 +4,7 @@ Usage:
     python train.py
     python train.py --env BeamRiderNoFrameskip-v4 -c dqn.yml
     python train.py -n 100000   # override yaml n_timesteps
-    python train.py -i latest -n 500000   # resume (+ 50k buffer warm-up)
+    python train.py -i latest -n 500000   # resume (reloads replay_buffer.pkl)
 
 By default TensorBoard events are written under each Zoo run folder
 (`logs/<algo>/<env>_N/tb/`) and TensorBoard auto-starts on port 6006
@@ -18,10 +18,28 @@ import socket
 import subprocess
 import sys
 import webbrowser
+import zipfile
 from pathlib import Path
 
 import config
 from zoo import run_zoo_train_inprocess, run_zoo_train_resume
+
+# SB3 writes these last; a second Ctrl+C mid-save leaves a zip with only
+# ``data`` / ``pytorch_variables.pth`` — load then fails with KeyError
+# ``policy.optimizer``.
+_SB3_REQUIRED_ZIP_MEMBERS = ("policy.pth", "policy.optimizer.pth")
+
+
+def _is_loadable_sb3_zip(path: Path) -> bool:
+    """True if ``path`` looks like a complete SB3 checkpoint zip."""
+    if not path.is_file() or path.suffix != ".zip":
+        return False
+    try:
+        with zipfile.ZipFile(path) as zf:
+            names = set(zf.namelist())
+    except zipfile.BadZipFile:
+        return False
+    return all(name in names for name in _SB3_REQUIRED_ZIP_MEMBERS)
 
 
 def resolve_trained_agent(
@@ -36,14 +54,22 @@ def resolve_trained_agent(
 
     Accepts a filesystem path, ``latest`` / ``0`` (newest run), or an exp id
     like ``16``. Prefers the final env zip; falls back to ``best_model.zip``
-    if that run was interrupted before the final save.
+    if that run was interrupted before / during the final save (missing or
+    truncated zip).
     """
     from huggingface_sb3 import EnvironmentName
     from rl_zoo3.utils import get_latest_run_id, get_model_path
 
     raw = Path(spec)
     if raw.is_file() and raw.suffix == ".zip":
-        return raw.resolve()
+        path = raw.resolve()
+        if not _is_loadable_sb3_zip(path):
+            raise FileNotFoundError(
+                f"{path} is not a complete SB3 checkpoint "
+                f"(missing {', '.join(_SB3_REQUIRED_ZIP_MEMBERS)} — "
+                "often a Ctrl+C mid-save). Prefer best_model.zip or an earlier exp."
+            )
+        return path
 
     key = spec.strip().lower()
     if key in {"latest", "0"}:
@@ -61,7 +87,10 @@ def resolve_trained_agent(
         exp_id = get_latest_run_id(str(algo_dir), env_name)
         print(f"Loading latest experiment, id={exp_id}")
 
-    # Walk downward so an interrupted newest run without a zip doesn't block resume.
+    def _usable(path: Path) -> Path | None:
+        return path.resolve() if _is_loadable_sb3_zip(path) else None
+
+    # Walk downward so a missing/truncated newest zip doesn't block resume.
     for candidate_id in range(exp_id, 0, -1):
         try:
             _, model_path, _ = get_model_path(
@@ -72,36 +101,36 @@ def resolve_trained_agent(
                 load_best=load_best,
             )
         except (ValueError, AssertionError, FileNotFoundError):
-            # Prefer best_model if final zip is missing (Ctrl+C before save).
-            if not load_best:
-                best = algo_dir / f"{env_name}_{candidate_id}" / "best_model.zip"
-                if best.is_file():
-                    if candidate_id != exp_id:
-                        print(
-                            f"No final zip in exp {exp_id}; "
-                            f"using best_model from exp {candidate_id}"
-                        )
-                    else:
-                        print(f"No final zip in exp {candidate_id}; using best_model.zip")
-                    return best.resolve()
-            continue
+            model_path = None
 
-        path = Path(model_path)
-        if path.suffix != ".zip":
-            path = Path(f"{model_path}.zip")
-        if path.is_file():
-            if candidate_id != exp_id:
-                print(f"No usable zip in exp {exp_id}; using exp {candidate_id}")
-            return path.resolve()
-
+        candidates: list[Path] = []
+        if model_path is not None:
+            path = Path(model_path)
+            if path.suffix != ".zip":
+                path = Path(f"{model_path}.zip")
+            candidates.append(path)
         if not load_best:
-            best = path.parent / "best_model.zip"
-            if best.is_file():
-                print(f"No final zip in exp {candidate_id}; using best_model.zip")
-                return best.resolve()
+            candidates.append(
+                algo_dir / f"{env_name}_{candidate_id}" / "best_model.zip"
+            )
+
+        for path in candidates:
+            chosen = _usable(path)
+            if chosen is None:
+                if path.is_file():
+                    print(f"Skipping incomplete checkpoint: {path}")
+                continue
+            if candidate_id != exp_id:
+                print(f"No usable zip in exp {exp_id}; using {chosen}")
+            elif path.name == "best_model.zip" and not load_best:
+                print(
+                    f"Final zip in exp {candidate_id} incomplete; "
+                    "using best_model.zip"
+                )
+            return chosen
 
     raise FileNotFoundError(
-        f"No checkpoint zip found under {algo_dir} for {env_id} "
+        f"No loadable checkpoint zip found under {algo_dir} for {env_id} "
         f"(tried exp ids {exp_id} → 1)"
     )
 
@@ -159,6 +188,7 @@ def train(
     trained_agent: str | None = None,
     load_best: bool = False,
     resume_warmup: int | None = None,
+    save_replay_buffer: bool = config.SAVE_REPLAY_BUFFER,
 ) -> None:
     """Kick off `rl_zoo3.train` with our defaults / overrides."""
     conf_path = Path(conf_file)
@@ -205,6 +235,10 @@ def train(
         args.extend(["--vec-env", vec_env])
     if eval_freq is not None:
         args.extend(["--eval-freq", str(eval_freq)])
+    if save_replay_buffer:
+        # Zoo writes replay_buffer.pkl beside the final zip (also after Ctrl+C)
+        # and reloads it automatically when that zip is passed to -i.
+        args.append("--save-replay-buffer")
     if trained_agent:
         agent_path = resolve_trained_agent(
             trained_agent,
@@ -302,9 +336,14 @@ def main() -> None:
         default=None,
         metavar="N",
         help=(
-            "With -i, collect N steps before gradient updates to refill an empty "
-            f"replay buffer (default: {config.RESUME_WARMUP_STEPS}; 0 disables)"
+            "With -i and no saved replay buffer, collect N steps before gradient "
+            f"updates (default: {config.RESUME_WARMUP_STEPS}; 0 disables)"
         ),
+    )
+    parser.add_argument(
+        "--no-save-replay-buffer",
+        action="store_true",
+        help="Don't write replay_buffer.pkl (saves disk; resume falls back to warm-up)",
     )
     args = parser.parse_args()
 
@@ -325,6 +364,7 @@ def main() -> None:
         trained_agent=args.trained_agent,
         load_best=args.load_best,
         resume_warmup=args.resume_warmup,
+        save_replay_buffer=not args.no_save_replay_buffer,
     )
 
 
