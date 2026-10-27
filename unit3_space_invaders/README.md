@@ -39,18 +39,19 @@ Run commands from `unit3_space_invaders/` so `dqn.yml` and `logs/` resolve.
 
 ```bash
 # Train (reads hyperparams from dqn.yml; override steps with -n)
-# TensorBoard events land in logs/dqn/<env>_N/tb/ (with that run's files);
-# the server auto-starts on :6006 watching logs/
+# New runs go under logs_active/ so TensorBoard stays clean; older runs stay
+# in logs/. Events land in <logdir>/dqn/<env>_N/tb/; TB auto-starts watching
+# the train -f folder (next free port if :6006 is already taken).
 # dqn.yml sets n_envs; train defaults to --vec-env subproc
 python main.py train
 python main.py train -n 100000
-# tensorboard --logdir logs/   # if you skipped auto-start
+# python main.py train -f logs     # write into the old archive tree instead
+# tensorboard --logdir logs_active/
 
-# Score the latest (or a specific) experiment
-python main.py evaluate
+# Score / record: defaults still look in logs/ (archive). For new runs:
+python main.py evaluate -f logs_active
+python main.py record -f logs_active --episodes 2
 python main.py evaluate --exp-id 1
-
-# Save mp4s under videos/
 python main.py record --exp-id 1 --episodes 2
 
 # Hub (requires `huggingface-cli login` first)

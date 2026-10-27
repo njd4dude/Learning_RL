@@ -10,10 +10,14 @@ from __future__ import annotations
 DEFAULT_ALGO = "dqn"
 DEFAULT_ENV = "SpaceInvadersNoFrameskip-v4"
 DEFAULT_CONFIG = "dqn.yml"
+# Existing Zoo runs (evaluate / record / push default here).
 LOG_FOLDER = "logs"
-# TensorBoard server watches this tree. Event files live in each Zoo run's
-# ``<logs>/<algo>/<env>_N/tb/`` (not a separate tb/ counter).
-TENSORBOARD_LOG_FOLDER = LOG_FOLDER
+# New ``train`` runs go here so TensorBoard stays clean; pass ``-f logs`` for
+# the archive. Event files live in each run's ``tb/`` subfolder.
+TRAIN_LOG_FOLDER = "logs_active"
+# Empty string = TensorBoard watches the train ``-f`` folder. Set explicitly
+# only if you want TB to watch a different tree than where zips are saved.
+TENSORBOARD_LOG_FOLDER = ""
 AUTO_START_TENSORBOARD = True
 TENSORBOARD_PORT = 6006
 VIDEO_FOLDER = "videos"

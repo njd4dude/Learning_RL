@@ -6,6 +6,7 @@ __pycache__/
 # Training outputs. The finished model belongs on the Hugging Face Hub.
 checkpoints/
 logs/
+logs_active/
 videos/
 runs/
 tb/

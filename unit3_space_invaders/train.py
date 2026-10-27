@@ -141,13 +141,28 @@ def _port_open(port: int) -> bool:
         return sock.connect_ex(("127.0.0.1", port)) == 0
 
 
+def _free_tensorboard_port(preferred: int, *, attempts: int = 10) -> int:
+    """Return `preferred` if free, else the next open port (old TB may still hold 6006)."""
+    for port in range(preferred, preferred + attempts):
+        if not _port_open(port):
+            return port
+    return preferred
+
+
 def _ensure_tensorboard(logdir: Path, port: int | None = None) -> None:
-    """Start TensorBoard in the background if nothing is already on `port`."""
-    port = config.TENSORBOARD_PORT if port is None else port
+    """Start TensorBoard in the background for `logdir`.
+
+    If the default port is already taken (often an older TB still watching
+    ``logs/``), bind the next free port so the new tree gets a clean UI.
+    """
+    preferred = config.TENSORBOARD_PORT if port is None else port
+    if _port_open(preferred):
+        print(
+            f"TensorBoard already on http://localhost:{preferred}/ "
+            f"(may be watching an older logdir); starting another for {logdir}"
+        )
+    port = _free_tensorboard_port(preferred)
     url = f"http://localhost:{port}/"
-    if _port_open(port):
-        print(f"TensorBoard already running at {url}")
-        return
 
     logdir.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -175,12 +190,12 @@ def _ensure_tensorboard(logdir: Path, port: int | None = None) -> None:
 def train(
     algo: str = config.DEFAULT_ALGO,
     env_id: str = config.DEFAULT_ENV,
-    log_folder: str = config.LOG_FOLDER,
+    log_folder: str = config.TRAIN_LOG_FOLDER,
     conf_file: str = config.DEFAULT_CONFIG,
     n_timesteps: int | None = None,
     progress: bool = True,
     seed: int | None = None,
-    tensorboard_log: str | None = config.TENSORBOARD_LOG_FOLDER,
+    tensorboard_log: str | None = "",
     auto_tensorboard: bool | None = None,
     device: str = config.DEVICE,
     vec_env: str = config.VEC_ENV,
@@ -190,7 +205,10 @@ def train(
     resume_warmup: int | None = None,
     save_replay_buffer: bool = config.SAVE_REPLAY_BUFFER,
 ) -> None:
-    """Kick off `rl_zoo3.train` with our defaults / overrides."""
+    """Kick off `rl_zoo3.train` with our defaults / overrides.
+
+    ``tensorboard_log=None`` disables TB. ``\"\"`` (default) watches ``log_folder``.
+    """
     conf_path = Path(conf_file)
     if not conf_path.is_file():
         raise FileNotFoundError(
@@ -211,11 +229,11 @@ def train(
         "-c",
         str(conf_path),
     ]
-    if tensorboard_log:
+    if tensorboard_log is not None:
         # Non-empty `-tb` enables Zoo/SB3 logging; zoo.py redirects events into
-        # each run's ``save_path/tb/``. The server watches the log tree so run
-        # names match experiment folders (e.g. …/SpaceInvaders…_40/tb).
-        tb_watch = Path(tensorboard_log)
+        # each run's ``save_path/tb/``. Default watch root is the train ``-f``
+        # tree so a fresh ``logs_active/`` is not mixed with archived ``logs/``.
+        tb_watch = Path(tensorboard_log) if tensorboard_log else Path(log_folder)
         tb_watch.mkdir(parents=True, exist_ok=True)
         args.extend(["-tb", str(tb_watch)])
         if auto_tensorboard:
@@ -265,7 +283,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--algo", default=config.DEFAULT_ALGO)
     parser.add_argument("--env", default=config.DEFAULT_ENV)
-    parser.add_argument("-f", "--log-folder", default=config.LOG_FOLDER)
+    parser.add_argument(
+        "-f",
+        "--log-folder",
+        default=config.TRAIN_LOG_FOLDER,
+        help=f"Zoo run root (default: {config.TRAIN_LOG_FOLDER}; archive is {config.LOG_FOLDER})",
+    )
     parser.add_argument("-c", "--conf", default=config.DEFAULT_CONFIG)
     parser.add_argument(
         "-n",
@@ -285,8 +308,8 @@ def main() -> None:
         "--tensorboard-log",
         default=config.TENSORBOARD_LOG_FOLDER,
         help=(
-            "TensorBoard --logdir root (default: logs/). Events for each run "
-            "are written under that run's own tb/ subfolder"
+            "TensorBoard --logdir root (default: same as -f). Events for each "
+            "run are written under that run's own tb/ subfolder"
         ),
     )
     parser.add_argument(
@@ -347,7 +370,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    tb = None if args.no_tensorboard else (args.tensorboard_log or None)
+    # None disables TB; "" means watch -f (see train()).
+    tb = None if args.no_tensorboard else args.tensorboard_log
     train(
         algo=args.algo,
         env_id=args.env,

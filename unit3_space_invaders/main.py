@@ -2,9 +2,9 @@
 
 Usage:
     python main.py train [--env space-invaders|beam-rider] [-n N]
-    python main.py train -i latest -n 500000   # reloads replay_buffer.pkl
-    python main.py evaluate [--exp-id 1]
-    python main.py record [--exp-id 1] [--episodes 2]
+    python main.py train -i latest -n 500000   # resume from logs_active/
+    python main.py evaluate [-f logs|logs_active] [--exp-id 1]
+    python main.py record [-f logs_active] [--episodes 2]
     python main.py push --orga YOUR_USER [--repo-name NAME]
     python main.py pull [--env beam-rider] [--orga sb3]
 """
@@ -40,7 +40,15 @@ def main() -> None:
         help="Shortcut (space-invaders|beam-rider) or a full Gymnasium env id",
     )
     p_train.add_argument("--algo", default=config.DEFAULT_ALGO)
-    p_train.add_argument("-f", "--log-folder", default=config.LOG_FOLDER)
+    p_train.add_argument(
+        "-f",
+        "--log-folder",
+        default=config.TRAIN_LOG_FOLDER,
+        help=(
+            f"Zoo run root (default: {config.TRAIN_LOG_FOLDER}; "
+            f"archived runs stay in {config.LOG_FOLDER})"
+        ),
+    )
     p_train.add_argument("-c", "--conf", default=config.DEFAULT_CONFIG)
     p_train.add_argument(
         "-n",
@@ -56,8 +64,8 @@ def main() -> None:
         "--tensorboard-log",
         default=config.TENSORBOARD_LOG_FOLDER,
         help=(
-            "TensorBoard --logdir root (default: logs/). Events live in each "
-            "run's tb/ subfolder next to monitors and zips"
+            "TensorBoard --logdir root (default: same as -f). Events live in "
+            "each run's tb/ subfolder next to monitors and zips"
         ),
     )
     p_train.add_argument(
@@ -158,7 +166,8 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "train":
-        tb = None if args.no_tensorboard else (args.tensorboard_log or None)
+        # None disables TB; "" means watch -f (see train.train).
+        tb = None if args.no_tensorboard else args.tensorboard_log
         train_mod.train(
             algo=args.algo,
             env_id=_resolve_env(args.env),
