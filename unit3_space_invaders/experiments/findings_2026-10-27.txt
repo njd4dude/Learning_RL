@@ -101,5 +101,29 @@ NEXT EXPERIMENTS
 ----------------
 - batch_large with gradient_steps 1 (replay ratio back to 8) to test the
   overfitting explanation.
-- batch_size 64 as a middle ground.
+- batch_size 64 as a middle ground. (Done, see FOLLOW-UP below.)
 - baseline for 3-5M steps, since it had not levelled off.
+- lr 3e-5 and 3e-4 to narrow down the best learning rate.
+- batch_size 16 to test the smaller direction.
+
+
+FOLLOW-UP 2026-10-28: batch_size 64 (batch_mid.yml, run _11, seed 0 only)
+--------------------------------------------------------------------------
+Config        Train reward  Training reward by fifth   Best eval  Last 3 evals  Wall time
+baseline (32)  642          181  230  329  514  627     916        684           23m
+batch_mid (64) 536          184  278  403  528  545     682        672           28m
+batch_large    440          227  320  390  437  435     514        396           31m
+  (128)
+
+- Bigger batches start faster but end lower: 32 > 64 > 128 at 1M steps,
+  and 128 > 64 > 32 early in the run.
+- Batch 64 led baseline through the middle of the run, then baseline passed
+  it in the final stretch.
+- Unlike batch 128, batch 64 had not stalled: eval kept rising to the end
+  (new best at 1M), and its final evals nearly match baseline's. A longer
+  run might close the gap.
+- Batch 32 is still the best choice for 1M steps; batch 64 is close but
+  slower in wall time.
+- Caveats: one seed only. Batch 64 with gradient_steps 4 also reuses each
+  transition 2x as often as baseline (replay ratio 16), so this does not
+  separate batch size from data reuse.

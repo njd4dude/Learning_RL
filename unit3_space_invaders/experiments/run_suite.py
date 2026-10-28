@@ -24,6 +24,7 @@ SUITE = [
     "lr_low.yml",
     "buffer_small.yml",
     "batch_large.yml",
+    "batch_mid.yml",
 ]
 
 
