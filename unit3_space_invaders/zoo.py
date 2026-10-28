@@ -9,8 +9,9 @@ Zoo's entrypoints (`rl_zoo3.train`, `.enjoy`, …) parse `sys.argv` themselves.
   timestep counter / exploration schedule going (unlike Zoo's default `-i`).
 
 TensorBoard: Zoo+SB3 normally write `tb/<env>/DQN_N` with a counter independent
-of `logs/<algo>/<env>_N`. We redirect events into each run's own ``tb/``
-subfolder so curves and configs share one directory.
+of `logs/<algo>/<env>_N`. We redirect events into each run's own
+``tb/<config>_s<seed>/`` subfolder so curves and configs share one directory,
+and TensorBoard's run name says which config / seed produced the curve.
 """
 
 from __future__ import annotations
@@ -38,16 +39,24 @@ def run_zoo_checked(module: str, args: Sequence[str]) -> None:
         raise SystemExit(code)
 
 
-def tb_dir_for_run(save_path: str | Path) -> Path:
+def run_label(conf_file: str | Path, seed: int | None) -> str:
+    """TensorBoard run name, e.g. ``baseline_s0`` for experiments/baseline.yml."""
+    stem = Path(conf_file).stem
+    return stem if seed is None else f"{stem}_s{seed}"
+
+
+def tb_dir_for_run(save_path: str | Path, label: str) -> Path:
     """Event files for one Zoo experiment live here (next to monitors / zips)."""
-    return Path(save_path) / "tb"
+    return Path(save_path) / "tb" / label
 
 
-def attach_run_tensorboard(model, save_path: str | Path, *, verbose: int = 1) -> Path:
-    """Point SB3's logger at ``<save_path>/tb`` (no separate DQN_N counter)."""
+def attach_run_tensorboard(
+    model, save_path: str | Path, label: str, *, verbose: int = 1
+) -> Path:
+    """Point SB3's logger at ``<save_path>/tb/<label>`` (no DQN_N counter)."""
     from stable_baselines3.common.logger import configure
 
-    tb_dir = tb_dir_for_run(save_path)
+    tb_dir = tb_dir_for_run(save_path, label)
     tb_dir.mkdir(parents=True, exist_ok=True)
     formats = ["stdout", "tensorboard"] if verbose >= 1 else ["tensorboard"]
     model.set_logger(configure(str(tb_dir), format_strings=formats))
@@ -137,7 +146,12 @@ def _colocated_tensorboard_patches() -> Iterator[None]:
 
     def patched_learn(self, model):
         if self.tensorboard_log:
-            attach_run_tensorboard(model, self.save_path, verbose=self.verbose)
+            attach_run_tensorboard(
+                model,
+                self.save_path,
+                run_label(self.config, self.seed),
+                verbose=self.verbose,
+            )
         return original_learn(self, model)
 
     em_mod.ExperimentManager.__init__ = patched_init  # type: ignore[method-assign]
@@ -194,7 +208,12 @@ def run_zoo_train_resume(
     def patched_learn(self, model: BaseAlgorithm) -> None:
         # Co-locate TB under this new run folder (same as a fresh train).
         if self.tensorboard_log:
-            attach_run_tensorboard(model, self.save_path, verbose=self.verbose)
+            attach_run_tensorboard(
+                model,
+                self.save_path,
+                run_label(self.config, self.seed),
+                verbose=self.verbose,
+            )
 
         print(f"Loaded weights from {checkpoint}")
         print(f"New experiment folder: {self.save_path}")

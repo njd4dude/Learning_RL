@@ -200,6 +200,7 @@ def train(
     device: str = config.DEVICE,
     vec_env: str = config.VEC_ENV,
     eval_freq: int | None = None,
+    eval_episodes: int | None = None,
     trained_agent: str | None = None,
     load_best: bool = False,
     resume_warmup: int | None = None,
@@ -253,6 +254,8 @@ def train(
         args.extend(["--vec-env", vec_env])
     if eval_freq is not None:
         args.extend(["--eval-freq", str(eval_freq)])
+    if eval_episodes is not None:
+        args.extend(["--eval-episodes", str(eval_episodes)])
     if save_replay_buffer:
         # Zoo writes replay_buffer.pkl beside the final zip (also after Ctrl+C)
         # and reloads it automatically when that zip is passed to -i.
@@ -340,6 +343,12 @@ def main() -> None:
         help="Evaluate every N timesteps (Zoo default 25000; -1 disables)",
     )
     parser.add_argument(
+        "--eval-episodes",
+        type=int,
+        default=None,
+        help="Episodes per evaluation (Zoo default 5)",
+    )
+    parser.add_argument(
         "-i",
         "--trained-agent",
         default=None,
@@ -385,6 +394,7 @@ def main() -> None:
         device=args.device,
         vec_env=args.vec_env,
         eval_freq=args.eval_freq,
+        eval_episodes=args.eval_episodes,
         trained_agent=args.trained_agent,
         load_best=args.load_best,
         resume_warmup=args.resume_warmup,

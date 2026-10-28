@@ -1,0 +1,18 @@
+# vs baseline: buffer_size 10_000. Short memory; can look peaky / forgetful.
+SpaceInvadersNoFrameskip-v4:
+  env_wrapper:
+    - stable_baselines3.common.atari_wrappers.AtariWrapper
+  frame_stack: 4
+  n_envs: 4
+  policy: 'CnnPolicy'
+  n_timesteps: 1_000_000
+  buffer_size: 10_000
+  learning_rate: 0.0001
+  batch_size: 32
+  learning_starts: 20_000
+  target_update_interval: 1000
+  train_freq: 4
+  gradient_steps: 4
+  exploration_fraction: 0.1
+  exploration_final_eps: 0.01
+  optimize_memory_usage: False

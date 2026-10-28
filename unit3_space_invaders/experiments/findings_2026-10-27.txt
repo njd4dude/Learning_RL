@@ -1,0 +1,102 @@
+DQN Space Invaders - hyperparameter suite findings (2026-10-27)
+================================================================
+
+SETUP
+-----
+Command:   python experiments/run_suite.py   (seeds 0 and 1)
+Runs:      logs_active/dqn/SpaceInvadersNoFrameskip-v4_1 .. _10
+           _1-_5 = seed 0, _6-_10 = seed 1, config order:
+           baseline, lr_high, lr_low, buffer_small, batch_large
+Shared:    n_envs 4, train_freq 4, gradient_steps 4 (replay ratio 8),
+           n_timesteps 1M (= 4M frames), learning_starts 20k,
+           buffer 100k, batch 32, lr 1e-4, target_update 1000,
+           eval 10 episodes every 50k steps
+Variants:  lr_high      learning_rate 1e-3
+           lr_low       learning_rate 1e-5
+           buffer_small buffer_size 10k
+           batch_large  batch_size 128
+Wall time: ~21-31 min per run, ~4 h total
+
+
+RESULTS
+-------
+Train reward = mean of last 200 training episodes.
+Random agent scores ~150.
+
+Config        Run   Seed  Train reward  Best eval  Mean of last 3 evals  Max loss
+baseline      _1    0     642           916        684                   0.08
+baseline      _6    1     623           694        505                   0.09
+batch_large   _5    0     440           514        396                   0.05
+batch_large   _10   1     459           615        389                   0.06
+buffer_small  _4    0     408           450        398                   0.10
+buffer_small  _9    1     400           492        399                   0.10
+lr_low        _3    0     272           430        296                   0.11
+lr_low        _8    1     259           341        304                   0.15
+lr_high       _2    0     187           362         85                   0.17
+lr_high       _7    1     254           398        182                   0.19
+
+Training reward by fifth of the run (seed 0):
+  baseline      181  230  329  514  627
+  batch_large   227  320  390  437  435
+  buffer_small  195  240  281  303  399
+  lr_low        191  220  238  274  263
+  lr_high       171  180  187  200  182
+
+Ranking (same for both seeds):
+  baseline > batch_large > buffer_small > lr_low ~ lr_high
+
+
+FINDINGS
+--------
+1. The budget matters most. An earlier suite (300k steps, gradient_steps 1,
+   ~18k updates per run) left every config at ~250, so they couldn't be told
+   apart. With ~250k updates per run, the configs separate clearly and both
+   seeds agree.
+
+2. The baseline (standard Atari DQN settings) is best: training reward tripled,
+   and it was still rising at 1M steps.
+
+3. lr_high (1e-3) is unstable. Training reward stayed flat at ~200, eval
+   repeatedly collapsed to 2-10 points (the greedy policy stops shooting), and
+   it had the highest loss spikes.
+
+4. lr_low (1e-5) is too slow. It learns, but about 10x more slowly, and ends
+   near where baseline was at 200-300k steps.
+
+5. batch_large (128) starts fastest (it led for the first ~40% of the run), then
+   flattens at ~450 while baseline keeps climbing. It had the smoothest loss and
+   took ~25% longer to run. Likely cause (not verified): each transition is
+   sampled ~32x instead of 8x, so the network may overfit the buffer.
+
+6. buffer_small (10k) improves steadily but ends lower. The buffer holds only
+   ~3 episodes, so minibatches have little variety.
+
+7. Eval rises and falls even when training goes well (baseline seed 1 peaked at
+   694 at ~700k, then fell to ~500). This is normal for DQN, and it's why
+   best_model.zip is worth keeping.
+
+8. A score of ~600-900 at 1M steps is in line with typical DQN progress on
+   Space Invaders. Fully trained DQN reaches ~1000-2000 after 10M+ steps.
+
+
+CAVEATS
+-------
+- Only 2 seeds. The large gaps (baseline vs either lr variant) are reliable.
+  The small gap between batch_large and buffer_small is too close to call.
+- 1M steps is still early for Atari. Rankings may change in longer runs,
+  especially for batch_large.
+
+
+BEST AGENT
+----------
+Run _1 (baseline, seed 0), best_model.zip, eval 916 (10 episodes).
+  python main.py evaluate -f logs_active --exp-id 1 --load-best
+  python main.py record   -f logs_active --exp-id 1 --episodes 2
+
+
+NEXT EXPERIMENTS
+----------------
+- batch_large with gradient_steps 1 (replay ratio back to 8) to test the
+  overfitting explanation.
+- batch_size 64 as a middle ground.
+- baseline for 3-5M steps, since it had not levelled off.
