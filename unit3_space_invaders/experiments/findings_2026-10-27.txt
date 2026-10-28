@@ -10,7 +10,9 @@ Runs:      logs_active/dqn/SpaceInvadersNoFrameskip-v4_1 .. _10
 Shared:    n_envs 4, train_freq 4, gradient_steps 4 (replay ratio 8),
            n_timesteps 1M (= 4M frames), learning_starts 20k,
            buffer 100k, batch 32, lr 1e-4, target_update 1000,
-           eval 10 episodes every 50k steps
+           eval 10 episodes every 50k steps (non-deterministic: Zoo
+           evaluates Atari with the current exploration rate, 0.01
+           after 100k steps, the same epsilon as training)
 Variants:  lr_high      learning_rate 1e-3
            lr_low       learning_rate 1e-5
            buffer_small buffer_size 10k
@@ -57,7 +59,8 @@ FINDINGS
    and it was still rising at 1M steps.
 
 3. lr_high (1e-3) is unstable. Training reward stayed flat at ~200, eval
-   repeatedly collapsed to 2-10 points (the greedy policy stops shooting), and
+   repeatedly collapsed to 2-10 points (the policy gets stuck not shooting,
+   and 1% random actions aren't enough to break it out), and
    it had the highest loss spikes.
 
 4. lr_low (1e-5) is too slow. It learns, but about 10x more slowly, and ends

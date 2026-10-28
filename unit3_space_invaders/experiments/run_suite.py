@@ -43,7 +43,7 @@ def main() -> None:
         help="Run every config once per seed (one seed can't separate luck from effect)",
     )
     # 10 episodes every 50k: less noisy points than Zoo's 5 every 25k, and
-    # greedy eval episodes (~2.5k steps each) don't eat the training time.
+    # eval episodes (~2.5k steps each) don't eat the training time.
     parser.add_argument("--eval-freq", type=int, default=50_000)
     parser.add_argument("--eval-episodes", type=int, default=10)
     args = parser.parse_args()
