@@ -1,13 +1,14 @@
-"""Record a replay video of a trained REINFORCE agent.
+"""Record replay videos of a trained REINFORCE agent.
 
 Usage:
-    python record_video.py [model_path] [out_path]
+    python record_video.py [model_path] [out_path] [--episodes N]
 
-With no model_path, uses the newest runs/*/model.pt. With no out_path, the
-video lands in `videos/<run-folder>.mp4`.
+With no model_path, uses the newest runs/*/model.pt. With no out_path, videos
+land in `videos/<run-folder>.mp4` (one episode) or
+`videos/<run-folder>-episode-01.mp4`, `-02.mp4`, ... (several).
 """
 
-import sys
+import argparse
 from pathlib import Path
 
 import imageio
@@ -40,24 +41,58 @@ def record_episode(env, policy, out_path: str | Path, fps: int = config.VIDEO_FP
     return total_reward
 
 
-def record(model_path: str | Path | None = None, out_path: str | Path | None = None):
+def _episode_path(base: Path, episode: int, episodes: int) -> Path:
+    if episodes == 1:
+        return base
+    return base.with_name(f"{base.stem}-episode-{episode:02d}{base.suffix}")
+
+
+def record(
+    model_path: str | Path | None = None,
+    out_path: str | Path | None = None,
+    episodes: int | None = None,
+):
+    """Play `episodes` stochastic rollouts and save each as an mp4.
+
+    Episodes run one after another in the same env (PLE/pygame is not safe to
+    spawn in parallel). Each file is a different sample from the policy.
+    """
     model_path = Path(model_path or latest_model_path())
     policy, hyperparameters = load_saved_model(model_path)
+    episodes = config.VIDEO_EPISODES if episodes is None else episodes
+    if episodes < 1:
+        raise ValueError(f"episodes must be >= 1, got {episodes}")
     if out_path is None:
         out_path = Path(config.VIDEO_FOLDER) / f"{model_path.parent.name}.mp4"
+    else:
+        out_path = Path(out_path)
 
     env = make_env(hyperparameters["env_id"], render_mode="rgb_array")
+    saved = []
     try:
-        total_reward = record_episode(env, policy, out_path)
+        for episode in range(1, episodes + 1):
+            path = _episode_path(out_path, episode, episodes)
+            total_reward = record_episode(env, policy, path)
+            saved.append((path, total_reward))
+            print(f"Episode {episode}/{episodes}: total reward = {total_reward:.1f}  -> {path}")
     finally:
         env.close()
 
-    print(f"Total reward = {total_reward:.1f}")
-    print(f"Saved video to {out_path}")
-    return out_path
+    if episodes > 1:
+        mean_reward = float(np.mean([reward for _path, reward in saved]))
+        print(f"mean_reward={mean_reward:.2f} over {episodes} videos")
+    return [path for path, _reward in saved]
 
 
 if __name__ == "__main__":
-    path = sys.argv[1] if len(sys.argv) > 1 else None
-    out = sys.argv[2] if len(sys.argv) > 2 else None
-    record(path, out)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("model_path", nargs="?", default=None)
+    parser.add_argument("out_path", nargs="?", default=None)
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=config.VIDEO_EPISODES,
+        help="How many episodes to record (default: config.VIDEO_EPISODES).",
+    )
+    args = parser.parse_args()
+    record(args.model_path, args.out_path, episodes=args.episodes)

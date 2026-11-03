@@ -3,7 +3,7 @@
 Usage:
     python main.py train [--env cartpole|pixelcopter]
     python main.py evaluate [model_path]
-    python main.py record [model_path] [out_path]
+    python main.py record [model_path] [out_path] [--episodes N]
     python main.py push <model_path> [repo_id]
     python main.py pull <repo_id>
 
@@ -45,9 +45,15 @@ def main():
     p_eval = sub.add_parser("evaluate", help="Evaluate a saved model")
     p_eval.add_argument("model_path", nargs="?", default=None)
 
-    p_rec = sub.add_parser("record", help="Record a replay video of a saved model")
+    p_rec = sub.add_parser("record", help="Record replay video(s) of a saved model")
     p_rec.add_argument("model_path", nargs="?", default=None)
     p_rec.add_argument("out_path", nargs="?", default=None)
+    p_rec.add_argument(
+        "--episodes",
+        type=int,
+        default=config.VIDEO_EPISODES,
+        help="How many episodes to record (default: config.VIDEO_EPISODES).",
+    )
 
     p_push = sub.add_parser("push", help="Upload a saved model to the Hugging Face Hub")
     p_push.add_argument("model_path")
@@ -63,7 +69,7 @@ def main():
     elif args.command == "evaluate":
         evaluate_mod.evaluate(args.model_path)
     elif args.command == "record":
-        record_video.record(args.model_path, args.out_path)
+        record_video.record(args.model_path, args.out_path, episodes=args.episodes)
     elif args.command == "push":
         hub.push_to_hub(args.model_path, args.repo_id or _default_repo_id(args.model_path))
     elif args.command == "pull":

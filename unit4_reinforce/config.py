@@ -24,7 +24,7 @@ PIXELCOPTER_HYPERPARAMETERS = dict(
     h_size=64,
     n_hidden_layers=2,  # fc1 -> fc2 (h_size*2) -> fc3
     n_training_episodes=50_000,
-    n_evaluation_episodes=10,
+    n_evaluation_episodes=50,
     max_t=10_000,
     gamma=0.99,
     lr=1e-4,
@@ -69,3 +69,4 @@ TENSORBOARD_PORT = 6006
 # --- Video recording ---
 VIDEO_FOLDER = "videos"
 VIDEO_FPS = 30
+VIDEO_EPISODES = 5
