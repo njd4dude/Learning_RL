@@ -5,6 +5,8 @@ hyperparameters, or the Hugging Face Hub target without touching the
 training/evaluation/upload logic itself.
 """
 
+from torch import nn
+
 # --- Environment ---
 ENV_ID = "LunarLander-v3"
 N_ENVS = 16  # number of parallel environments used during training
@@ -14,20 +16,32 @@ MODEL_NAME = "ppo-LunarLander-v2"
 MODEL_ARCHITECTURE = "PPO"
 MODEL_PATH = f"{MODEL_NAME}.zip"
 
-# PPO hyperparameters (tuned for LunarLander in the Deep RL Course)
+# PPO hyperparameters from Optuna trial 26 (RL Zoo study "ppo_lunar",
+# logs/optuna_ppo.db): mean reward 295.7 after only 300k steps, one seed.
+# The course values they replace were n_steps=1024, batch_size=64,
+# n_epochs=4, gamma=0.999, gae_lambda=0.98, ent_coef=0.01.
 PPO_KWARGS = dict(
     policy="MlpPolicy",
-    n_steps=1024,
-    batch_size=64,
-    n_epochs=4,
-    gamma=0.999,
-    gae_lambda=0.98,
-    ent_coef=0.01,
+    n_steps=256,
+    batch_size=16,
+    n_epochs=20,
+    learning_rate=6.19e-5,
+    gamma=0.9934,
+    gae_lambda=0.9497,
+    ent_coef=1.28e-5,
+    clip_range=0.2,
+    max_grad_norm=0.83,
+    policy_kwargs=dict(
+        net_arch=dict(pi=[256, 256], vf=[256, 256]),
+        activation_fn=nn.ReLU,
+    ),
+    # Small MLP with tiny batches: CPU beats GPU here, and tuning ran on CPU.
+    device="cpu",
     verbose=1,
     tensorboard_log="./logs",
 )
 
-TRAIN_TIMESTEPS = 1_0000_000
+TRAIN_TIMESTEPS = 300_000
 
 # DQN hyperparameters tuned for LunarLander-v3 in RL Baselines3 Zoo.
 # DQN learns from one environment and a replay buffer, so this block is
