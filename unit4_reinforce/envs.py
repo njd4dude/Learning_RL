@@ -40,7 +40,9 @@ class PixelcopterEnv(gym.Env):
 
         self.render_mode = render_mode
         self.game = Pixelcopter()
-        self.ple = PLE(self.game, fps=30, display_screen=False)
+        # PLE defaults to rng=24, which replays the same levels every run.
+        # None seeds from the OS; pass reset(seed=...) to get repeatable levels.
+        self.ple = PLE(self.game, fps=30, display_screen=False, rng=None)
         self.ple.init()
 
         self.action_set = self.ple.getActionSet()
@@ -53,6 +55,8 @@ class PixelcopterEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        if seed is not None:
+            self.game.rng.seed(seed)
         self.ple.reset_game()
         return self._obs(), {}
 
