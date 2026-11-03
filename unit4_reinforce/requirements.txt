@@ -1,0 +1,10 @@
+gymnasium[classic-control]
+numpy
+torch
+tensorboard
+huggingface_hub
+imageio
+imageio-ffmpeg
+# Pixelcopter only: the PyGame Learning Environment (not on PyPI).
+# Uses the `pygame` module; pygame-ce (already in the venv) provides it.
+ple @ git+https://github.com/ntasfi/PyGame-Learning-Environment.git
