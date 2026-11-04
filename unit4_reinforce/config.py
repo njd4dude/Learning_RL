@@ -24,7 +24,7 @@ PIXELCOPTER_HYPERPARAMETERS = dict(
     h_size=64,
     n_hidden_layers=2,  # fc1 -> fc2 (h_size*2) -> fc3
     n_training_episodes=50_000,
-    n_evaluation_episodes=50,
+    n_evaluation_episodes=200,
     max_t=10_000,
     gamma=0.99,
     lr=1e-4,
@@ -40,7 +40,7 @@ PIXELCOPTER_PIXELS_HYPERPARAMETERS = dict(
     policy_type="cnn",
     h_size=256,  # fully connected layer after the conv layers
     n_training_episodes=50_000,
-    n_evaluation_episodes=50,
+    n_evaluation_episodes=200,
     max_t=10_000,
     gamma=0.99,
     lr=1e-4,
@@ -83,6 +83,28 @@ DEFAULT_ENVIRONMENT = "cartpole"
 # The policy is a tiny MLP fed one state at a time, so moving every step to
 # the GPU and back costs more than it saves. "cuda" works if you want it.
 DEVICE = "cpu"
+
+# --- PPO on Pixelcopter (train_ppo.py) ---
+# PPO's usual starting values. ent_coef rewards keeping some randomness, since
+# the REINFORCE models became almost certain of every move.
+PPO_N_ENVS = 8
+PPO_TIMESTEPS = 5_000_000
+PPO_EVAL_EPISODES = 200
+PPO_TRAIN_EVAL_EPISODES = 20
+PPO_TRAIN_EVAL_STEPS = 100_000
+PPO_CHECKPOINT_STEPS = 500_000
+PPO_KWARGS = dict(
+    policy="MlpPolicy",
+    n_steps=512,  # per env, so 4096 steps between updates
+    batch_size=256,
+    n_epochs=10,
+    learning_rate=3e-4,
+    gamma=0.99,
+    gae_lambda=0.95,
+    ent_coef=0.01,
+    clip_range=0.2,
+    policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64])),
+)
 
 # --- Hugging Face Hub ---
 USERNAME = "njdonato"

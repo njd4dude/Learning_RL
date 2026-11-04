@@ -1,7 +1,9 @@
-"""Evaluate a saved REINFORCE model (CartPole or Pixelcopter).
+"""Evaluate a saved REINFORCE or PPO model.
 
 Usage:
-    python evaluate.py [model_path]    # defaults to the newest runs/*/model.pt
+    python evaluate.py [model_path]    # defaults to the newest run of either kind
+
+model_path is a REINFORCE model.pt, or a PPO model.zip or its run folder.
 """
 
 import sys
@@ -23,6 +25,23 @@ def latest_model_path(env_name: str | None = None) -> Path:
         which = f"{env_name} runs" if env_name else "runs"
         raise FileNotFoundError(f"No {which} found under {config.RUNS_FOLDER}/ — train one first.")
     return candidates[-1]
+
+
+def latest_saved_path() -> Path:
+    """The newest run's model, whether REINFORCE's model.pt or PPO's model.zip."""
+    runs = Path(config.RUNS_FOLDER)
+    candidates = [*runs.glob("*/model.pt"), *runs.glob("*/model.zip")]
+    if not candidates:
+        raise FileNotFoundError(f"No runs found under {config.RUNS_FOLDER}/ — train one first.")
+    return max(candidates, key=lambda path: path.parent.name)
+
+
+def ppo_run_dir(model_path: str | Path) -> Path | None:
+    """The run folder if `model_path` is a PPO model.zip or run folder, else None."""
+    model_path = Path(model_path)
+    if model_path.suffix == ".zip":
+        return model_path.parent
+    return model_path if (model_path / "model.zip").exists() else None
 
 
 def load_saved_model(model_path: str | Path | None = None):
@@ -50,14 +69,21 @@ def n_evaluation_episodes(env_id: str) -> int:
 
 def evaluate(model_path: str | Path | None = None):
     """Load a saved model and report its mean/std reward on a fresh env."""
-    model_path = model_path or latest_model_path()
+    model_path = Path(model_path) if model_path else latest_saved_path()
     print(f"Evaluating {model_path}")
-    policy, hyperparameters = load_saved_model(model_path)
-    env = make_env(hyperparameters["env_id"])
-    mean_reward, std_reward = evaluate_agent(
-        env, hyperparameters["max_t"], n_evaluation_episodes(hyperparameters["env_id"]), policy
-    )
-    env.close()
+    run_dir = ppo_run_dir(model_path)
+    if run_dir is not None:
+        # Imported here because Stable-Baselines3 is slow to load and only PPO needs it.
+        from train_ppo import evaluate as evaluate_ppo
+
+        mean_reward, std_reward = evaluate_ppo(run_dir)
+    else:
+        policy, hyperparameters = load_saved_model(model_path)
+        env = make_env(hyperparameters["env_id"])
+        mean_reward, std_reward = evaluate_agent(
+            env, hyperparameters["max_t"], n_evaluation_episodes(hyperparameters["env_id"]), policy
+        )
+        env.close()
     print(f"mean_reward={mean_reward:.2f} +/- {std_reward:.2f}")
     return mean_reward, std_reward
 

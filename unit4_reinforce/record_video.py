@@ -1,9 +1,10 @@
-"""Record replay videos of a trained REINFORCE agent.
+"""Record replay videos of a trained REINFORCE or PPO agent.
 
 Usage:
     python record_video.py [model_path] [out_path] [--episodes N]
 
-With no model_path, uses the newest runs/*/model.pt. With no out_path, videos
+model_path is a REINFORCE model.pt, or a PPO model.zip or its run folder. With
+no model_path, uses the newest run of either kind. With no out_path, videos
 land in `videos/<run-folder>.mp4` (one episode) or
 `videos/<run-folder>-episode-01.mp4`, `-02.mp4`, ... (several).
 """
@@ -17,7 +18,7 @@ import torch
 
 import config
 from envs import make_env
-from evaluate import latest_model_path, load_saved_model
+from evaluate import latest_saved_path, load_saved_model, ppo_run_dir
 
 
 def record_episode(env, policy, out_path: str | Path, fps: int = config.VIDEO_FPS) -> float:
@@ -57,17 +58,28 @@ def record(
     Episodes run one after another in the same env (PLE/pygame is not safe to
     spawn in parallel). Each file is a different sample from the policy.
     """
-    model_path = Path(model_path or latest_model_path())
-    policy, hyperparameters = load_saved_model(model_path)
+    model_path = Path(model_path or latest_saved_path())
+    run_dir = ppo_run_dir(model_path)
+    if run_dir is not None:
+        # Imported here because Stable-Baselines3 is slow to load and only PPO needs it.
+        from train_ppo import PpoPlayer
+
+        policy = PpoPlayer(run_dir)
+        env_id = config.PIXELCOPTER_ENV_ID
+        run_name = run_dir.name
+    else:
+        policy, hyperparameters = load_saved_model(model_path)
+        env_id = hyperparameters["env_id"]
+        run_name = model_path.parent.name
     episodes = config.VIDEO_EPISODES if episodes is None else episodes
     if episodes < 1:
         raise ValueError(f"episodes must be >= 1, got {episodes}")
     if out_path is None:
-        out_path = Path(config.VIDEO_FOLDER) / f"{model_path.parent.name}.mp4"
+        out_path = Path(config.VIDEO_FOLDER) / f"{run_name}.mp4"
     else:
         out_path = Path(out_path)
 
-    env = make_env(hyperparameters["env_id"], render_mode="rgb_array")
+    env = make_env(env_id, render_mode="rgb_array")
     saved = []
     try:
         for episode in range(1, episodes + 1):

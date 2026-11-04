@@ -51,8 +51,9 @@ Run commands from `unit4_reinforce/`.
 | `policy.py`       | The policy networks (MLP with 1 or 2 hidden layers, or a CNN for frames) and their `act()` sampler |
 | `reinforce.py`    | The algorithm itself: discounted returns, training loop, eval loop |
 | `train.py`        | Trains a policy and saves it, with TensorBoard logs, under `runs/` |
+| `train_ppo.py`    | Trains and scores PPO on the 7-number Pixelcopter, to compare with REINFORCE |
 | `evaluate.py`     | Loads a saved model and reports mean/std reward                  |
-| `record_video.py` | Plays one episode and saves it as an `.mp4` replay               |
+| `record_video.py` | Plays episodes and saves `.mp4` replays, for REINFORCE or PPO runs |
 | `visualize.py`    | Video of what the CNN sees: input frames, every conv feature map, action probabilities |
 | `hub.py`          | Push a model to the Hugging Face Hub, or pull one down           |
 | `main.py`         | CLI that wires the above together                                |
@@ -77,6 +78,7 @@ python main.py train --resume runs/20261103_115100_cartpole/checkpoint.pt       
 # Check how good the newest run is (or pass a specific runs/.../model.pt)
 python main.py evaluate
 python main.py evaluate runs/20261103_115100_cartpole/model.pt
+python main.py evaluate runs/20261104_144155_pixelcopter-ppo   # a PPO run folder
 
 # Save a replay video to ./videos/
 python main.py record

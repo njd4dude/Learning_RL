@@ -2,6 +2,7 @@ gymnasium[classic-control]
 numpy
 torch
 tensorboard
+stable-baselines3
 huggingface_hub
 imageio
 imageio-ffmpeg

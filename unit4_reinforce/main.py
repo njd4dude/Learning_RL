@@ -10,7 +10,9 @@ Usage:
     python main.py push <model_path> [repo_id]
     python main.py pull <repo_id>
 
-model_path defaults to the newest runs/*/model.pt. repo_id defaults to
+model_path defaults to the newest run. evaluate and record also take PPO runs
+(a model.zip or its run folder); visualize and push don't, so they default to the
+newest runs/*/model.pt. repo_id defaults to
 <config.USERNAME>/<the environment's model_name>.
 """
 
