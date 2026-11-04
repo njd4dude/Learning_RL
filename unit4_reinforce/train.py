@@ -3,18 +3,26 @@
 Usage:
     python train.py                     # CartPole-v1 (default)
     python train.py --env pixelcopter   # Pixelcopter-PLE-v0
+    python train.py --resume runs/<run>/model.pt                  # finish an interrupted run
+    python train.py --resume runs/<run>/checkpoint.pt             # recover a crashed run
+    python train.py --resume runs/<run>/model.pt --episodes 500   # train 500 more
+    python train.py --resume runs/<run>/model.pt --lr 0.00005     # continue at a new learning rate
 
 Edit hyperparameters in config.py, then re-run. Each run writes a unique
 folder under `runs/` with model.pt, hyperparameters.json, run.txt, and live
-TensorBoard logs under `tb/`.
+TensorBoard logs under `tb/`. During training the folder also holds a rolling
+checkpoint.pt, removed once model.pt is saved. Resuming writes a new folder
+too, so the run it started from is never changed.
 """
 
 import argparse
 import json
+import os
 import socket
 import subprocess
 import sys
 import webbrowser
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 
@@ -25,7 +33,7 @@ from torch.utils.tensorboard import SummaryWriter
 import config
 from envs import make_env
 from policy import build_policy
-from reinforce import evaluate_agent, reinforce
+from reinforce import Progress, evaluate_agent, reinforce
 
 
 def _port_open(port: int) -> bool:
@@ -69,6 +77,7 @@ def _write_run_log(run_dir: Path, env_name: str, hyperparameters: dict, results:
     lines = [
         f"env: {env_name}",
         f"trained_at: {datetime.now().isoformat(timespec='seconds')}",
+        f"resumed_from: {results['resumed_from']}",
         f"interrupted: {results['interrupted']}",
         f"episodes_completed: {results['episodes_completed']}/{hyperparameters['n_training_episodes']}",
         f"mean_reward: {results['mean_reward']:.4f}",
@@ -87,9 +96,74 @@ def _write_run_log(run_dir: Path, env_name: str, hyperparameters: dict, results:
     return log_path
 
 
-def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | None = None):
-    """Train a fresh policy for `env_name` and save it under `runs/`."""
+def _progress_fields(progress: Progress) -> dict:
+    """`progress` as the plain values stored in a checkpoint and in run.txt."""
+    return {
+        "episodes_completed": progress.episodes,
+        "total_steps": progress.total_steps,
+        "train_seconds": progress.train_seconds,
+        "fps": progress.fps,
+        "recent_scores": list(progress.recent_scores),
+    }
+
+
+def _restore_progress(checkpoint: dict) -> Progress:
+    """Counters from a checkpoint. Older ones have episodes but no step counts."""
+    return Progress(
+        episodes=checkpoint["episodes_completed"],
+        total_steps=checkpoint.get("total_steps", 0),
+        train_seconds=checkpoint.get("train_seconds", 0.0),
+        recent_scores=deque(checkpoint.get("recent_scores", []), maxlen=100),
+    )
+
+
+def _save_checkpoint(path: Path, env_name: str, hyperparameters: dict, policy, optimizer, **fields) -> None:
+    """Write via a temp file, so a crash mid-save can't ruin the previous checkpoint."""
+    temp_path = path.with_suffix(".tmp")
+    torch.save(
+        {
+            "env_name": env_name,
+            "hyperparameters": hyperparameters,
+            "state_dict": policy.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            **fields,
+        },
+        temp_path,
+    )
+    os.replace(temp_path, path)
+
+
+def train(
+    env_name: str = config.DEFAULT_ENVIRONMENT,
+    auto_tensorboard: bool | None = None,
+    resume_from: str | Path | None = None,
+    episodes: int | None = None,
+    lr: float | None = None,
+):
+    """Train a policy and save it under `runs/`.
+
+    `resume_from` continues a saved model.pt or checkpoint.pt with its own
+    environment and hyperparameters, so `env_name` and config.py's values for
+    that environment are ignored. `episodes` is how many to train this session;
+    by default, whatever is left of the run's n_training_episodes. `lr` replaces
+    the learning rate, saved or from config.py.
+    """
+    checkpoint = None
+    if resume_from is not None:
+        checkpoint = torch.load(resume_from, map_location=config.DEVICE, weights_only=True)
+        env_name = checkpoint["env_name"]
     settings = config.ENVIRONMENTS[env_name]
+    base_hyperparameters = checkpoint["hyperparameters"] if checkpoint else settings["hyperparameters"]
+
+    progress = _restore_progress(checkpoint) if checkpoint else Progress()
+    budget = base_hyperparameters["n_training_episodes"]
+    n_episodes = budget - progress.episodes if episodes is None else episodes
+    if n_episodes <= 0:
+        raise SystemExit(
+            f"Already trained {progress.episodes}/{budget} episodes. "
+            "Pass --episodes N to train N more."
+        )
+
     env = make_env(settings["env_id"])
 
     # The Hub's hyperparameters.json carries the env id and space sizes too,
@@ -97,7 +171,9 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
     # stored as its length (course format); stacked frames as their full shape.
     obs_shape = env.observation_space.shape
     hyperparameters = {
-        **settings["hyperparameters"],
+        **base_hyperparameters,
+        "n_training_episodes": progress.episodes + n_episodes,
+        "lr": base_hyperparameters["lr"] if lr is None else lr,
         "env_id": settings["env_id"],
         "state_space": obs_shape[0] if len(obs_shape) == 1 else list(obs_shape),
         "action_space": int(env.action_space.n),
@@ -109,6 +185,16 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
 
     policy = build_policy(hyperparameters, config.DEVICE)
     optimizer = optim.Adam(policy.parameters(), lr=hyperparameters["lr"])
+    if checkpoint:
+        policy.load_state_dict(checkpoint["state_dict"])
+        if "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            # Loading restores the saved lr too, so set the one this run uses.
+            for group in optimizer.param_groups:
+                group["lr"] = hyperparameters["lr"]
+        else:
+            print("No optimizer state in this model; starting Adam fresh.")
+        print(f"Already trained for {progress.episodes} episodes; training {n_episodes} more.")
 
     run_dir = _new_run_dir(env_name)
     tb_writer = SummaryWriter(log_dir=str(run_dir / "tb"), flush_secs=5)
@@ -119,21 +205,31 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
     if auto_tensorboard:
         _ensure_tensorboard(Path(config.RUNS_FOLDER))
 
+    checkpoint_path = run_dir / "checkpoint.pt"
+
+    def save_checkpoint() -> None:
+        _save_checkpoint(
+            checkpoint_path, env_name, hyperparameters, policy, optimizer, **_progress_fields(progress)
+        )
+
     # Separate env for eval, never the one used for training.
     eval_env = make_env(settings["env_id"])
     try:
-        scores, total_steps, train_seconds = reinforce(
+        scores = reinforce(
             env,
             policy,
             optimizer,
-            hyperparameters["n_training_episodes"],
+            n_episodes,
             hyperparameters["max_t"],
             hyperparameters["gamma"],
             settings["print_every"],
+            progress,
             tb_writer=tb_writer,
             eval_env=eval_env,
             train_eval_every=settings.get("train_eval_every", 0),
             n_train_eval_episodes=settings.get("n_train_eval_episodes", 10),
+            checkpoint_every=settings.get("checkpoint_every", 0),
+            save_checkpoint=save_checkpoint,
         )
 
         print(f"Final eval over {hyperparameters['n_evaluation_episodes']} episodes (Ctrl+C to skip)...")
@@ -146,8 +242,8 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
             )
             # Own tag: it uses n_evaluation_episodes, not the mid-training count,
             # so it shouldn't share a curve with eval/mean_reward.
-            tb_writer.add_scalar("eval/final_mean_reward", mean_reward, len(scores))
-            tb_writer.add_scalar("eval/final_std_reward", std_reward, len(scores))
+            tb_writer.add_scalar("eval/final_mean_reward", mean_reward, progress.episodes)
+            tb_writer.add_scalar("eval/final_std_reward", std_reward, progress.episodes)
         except KeyboardInterrupt:
             # A second Ctrl+C must not lose the trained policy: skip the score,
             # save anyway, and score it later with `python main.py evaluate`.
@@ -162,24 +258,15 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
     results = {
         "mean_reward": mean_reward,
         "std_reward": std_reward,
-        "episodes_completed": len(scores),
-        "interrupted": len(scores) < hyperparameters["n_training_episodes"],
-        "total_steps": total_steps,
-        "train_seconds": train_seconds,
-        # Zero seconds if Ctrl+C lands before the first episode finishes.
-        "fps": total_steps / train_seconds if train_seconds else 0.0,
+        "interrupted": progress.episodes < hyperparameters["n_training_episodes"],
+        "resumed_from": str(resume_from) if resume_from else None,
+        **_progress_fields(progress),
     }
 
     model_path = run_dir / "model.pt"
-    torch.save(
-        {
-            "env_name": env_name,
-            "hyperparameters": hyperparameters,
-            "state_dict": policy.state_dict(),
-            **results,
-        },
-        model_path,
-    )
+    _save_checkpoint(model_path, env_name, hyperparameters, policy, optimizer, **results)
+    # model.pt now has everything checkpoint.pt had.
+    checkpoint_path.unlink(missing_ok=True)
     with open(run_dir / "hyperparameters.json", "w") as f:
         json.dump(hyperparameters, f, indent=2)
     log_path = _write_run_log(run_dir, env_name, hyperparameters, results)
@@ -198,11 +285,14 @@ def parse_args() -> argparse.Namespace:
         "--env",
         choices=list(config.ENVIRONMENTS),
         default=config.DEFAULT_ENVIRONMENT,
-        help="Which environment to train on.",
+        help="Which environment to train on. Ignored with --resume.",
     )
+    parser.add_argument("--resume", metavar="MODEL_PATH", help="Continue from a saved model.pt or checkpoint.pt.")
+    parser.add_argument("--episodes", type=int, help="Episodes to train this session.")
+    parser.add_argument("--lr", type=float, help="Learning rate, replacing the saved or configured one.")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    train(args.env)
+    train(args.env, resume_from=args.resume, episodes=args.episodes, lr=args.lr)

@@ -68,6 +68,12 @@ python main.py train --env pixelcopter-pixels   # CNN on screen frames
 python main.py visualize   # what the newest pixels model sees -> videos/<run>-network.mp4
 python main.py visualize --untrained   # same view with random filters, to compare
 
+# Continue an earlier run. This writes a new folder under runs/.
+python main.py train --resume runs/20261103_115100_cartpole/model.pt                  # finish the episode budget
+python main.py train --resume runs/20261103_115100_cartpole/model.pt --episodes 500   # train 500 more
+python main.py train --resume runs/20261103_115100_cartpole/model.pt --lr 0.00005    # continue at a new learning rate
+python main.py train --resume runs/20261103_115100_cartpole/checkpoint.pt             # recover a crashed run
+
 # Check how good the newest run is (or pass a specific runs/.../model.pt)
 python main.py evaluate
 python main.py evaluate runs/20261103_115100_cartpole/model.pt

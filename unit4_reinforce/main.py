@@ -2,6 +2,7 @@
 
 Usage:
     python main.py train [--env cartpole|pixelcopter|pixelcopter-pixels]
+    python main.py train --resume <model_path> [--episodes N] [--lr RATE]
     python main.py evaluate [model_path]
     python main.py record [model_path] [out_path] [--episodes N]
     python main.py visualize [model_path] [out_path]
@@ -42,8 +43,11 @@ def main():
         "--env",
         choices=list(config.ENVIRONMENTS),
         default=config.DEFAULT_ENVIRONMENT,
-        help="Which environment to train on.",
+        help="Which environment to train on. Ignored with --resume.",
     )
+    p_train.add_argument("--resume", metavar="MODEL_PATH", help="Continue from a saved model.pt or checkpoint.pt.")
+    p_train.add_argument("--episodes", type=int, help="Episodes to train this session.")
+    p_train.add_argument("--lr", type=float, help="Learning rate, replacing the saved or configured one.")
 
     p_eval = sub.add_parser("evaluate", help="Evaluate a saved model")
     p_eval.add_argument("model_path", nargs="?", default=None)
@@ -73,7 +77,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "train":
-        train_mod.train(args.env)
+        train_mod.train(args.env, resume_from=args.resume, episodes=args.episodes, lr=args.lr)
     elif args.command == "evaluate":
         evaluate_mod.evaluate(args.model_path)
     elif args.command == "record":

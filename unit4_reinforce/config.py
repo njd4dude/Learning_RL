@@ -55,6 +55,8 @@ ENVIRONMENTS = {
         # Mid-training eval for the TensorBoard eval/ charts (0 = skip).
         train_eval_every=50,
         n_train_eval_episodes=10,
+        # Episodes between saves of the run's checkpoint.pt (0 = skip).
+        checkpoint_every=100,
     ),
     "pixelcopter": dict(
         env_id=PIXELCOPTER_ENV_ID,
@@ -63,6 +65,7 @@ ENVIRONMENTS = {
         print_every=1000,
         train_eval_every=500,
         n_train_eval_episodes=10,
+        checkpoint_every=1000,
     ),
     "pixelcopter-pixels": dict(
         env_id=PIXELCOPTER_PIXELS_ENV_ID,
@@ -71,6 +74,7 @@ ENVIRONMENTS = {
         print_every=1000,
         train_eval_every=500,
         n_train_eval_episodes=10,
+        checkpoint_every=1000,
     ),
 }
 
@@ -85,7 +89,8 @@ USERNAME = "njdonato"
 
 # --- Training runs ---
 # Each `python main.py train` writes a unique folder here with model.pt,
-# hyperparameters.json, run.txt, and TensorBoard logs under tb/.
+# hyperparameters.json, run.txt, and TensorBoard logs under tb/. A rolling
+# checkpoint.pt sits there during training, in case the run crashes.
 RUNS_FOLDER = "runs"
 AUTO_START_TENSORBOARD = True
 TENSORBOARD_PORT = 6006
