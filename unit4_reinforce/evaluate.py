@@ -15,11 +15,13 @@ from policy import build_policy
 from reinforce import evaluate_agent
 
 
-def latest_model_path() -> Path:
-    """The model.pt from the most recent training run."""
-    candidates = sorted(Path(config.RUNS_FOLDER).glob("*/model.pt"))
+def latest_model_path(env_name: str | None = None) -> Path:
+    """The model.pt from the most recent training run, optionally of one environment."""
+    pattern = f"*_{env_name}/model.pt" if env_name else "*/model.pt"
+    candidates = sorted(Path(config.RUNS_FOLDER).glob(pattern))
     if not candidates:
-        raise FileNotFoundError(f"No runs found under {config.RUNS_FOLDER}/ — train one first.")
+        which = f"{env_name} runs" if env_name else "runs"
+        raise FileNotFoundError(f"No {which} found under {config.RUNS_FOLDER}/ — train one first.")
     return candidates[-1]
 
 

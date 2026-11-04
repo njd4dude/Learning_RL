@@ -17,6 +17,11 @@ the same modular layout as `unit2_q_learning/`.
 - [Pixelcopter](https://pygame-learning-environment.readthedocs.io/en/latest/user/games/pixelcopter.html):
   fly a copter through gaps in a scrolling cave. 7 observation values, 2
   actions (flap / do nothing). Much harder, with a deeper net and ~50k episodes.
+- **Pixelcopter from pixels** (`--env pixelcopter-pixels`, the course's
+  suggested follow-up): the same game, but the agent sees the screen instead
+  of the 7 numbers. Each observation is the last 4 frames, 48x48 grayscale
+  (shape `(4, 48, 48)`), so it can see motion. A CNN policy has to learn to
+  find the copter and the walls itself.
 
 **REINFORCE** is a Monte Carlo policy-gradient method. Unlike Q-Learning and
 DQN, it learns the policy directly (a network that outputs action
@@ -42,12 +47,13 @@ Run commands from `unit4_reinforce/`.
 | File              | Purpose                                                         |
 |-------------------|-----------------------------------------------------------------|
 | `config.py`       | All settings: env ids, per-env hyperparameters, Hub username, device |
-| `envs.py`         | `make_env`, plus a Gymnasium port of Pixelcopter registered as `Pixelcopter-PLE-v0` |
-| `policy.py`       | The policy network (1 or 2 hidden layers) and its `act()` sampler |
+| `envs.py`         | `make_env`, plus a Gymnasium port of Pixelcopter registered as `Pixelcopter-PLE-v0` (state) and `Pixelcopter-PLE-pixels-v0` (frames) |
+| `policy.py`       | The policy networks (MLP with 1 or 2 hidden layers, or a CNN for frames) and their `act()` sampler |
 | `reinforce.py`    | The algorithm itself: discounted returns, training loop, eval loop |
 | `train.py`        | Trains a policy and saves it, with TensorBoard logs, under `runs/` |
 | `evaluate.py`     | Loads a saved model and reports mean/std reward                  |
 | `record_video.py` | Plays one episode and saves it as an `.mp4` replay               |
+| `visualize.py`    | Video of what the CNN sees: input frames, every conv feature map, action probabilities |
 | `hub.py`          | Push a model to the Hugging Face Hub, or pull one down           |
 | `main.py`         | CLI that wires the above together                                |
 | `unit4.ipynb`     | Original course notebook                                         |
@@ -58,6 +64,9 @@ Run commands from `unit4_reinforce/`.
 # Train CartPole (the default) or Pixelcopter
 python main.py train
 python main.py train --env pixelcopter
+python main.py train --env pixelcopter-pixels   # CNN on screen frames
+python main.py visualize   # what the newest pixels model sees -> videos/<run>-network.mp4
+python main.py visualize --untrained   # same view with random filters, to compare
 
 # Check how good the newest run is (or pass a specific runs/.../model.pt)
 python main.py evaluate
@@ -111,4 +120,9 @@ or `python evaluate.py`.
   TensorBoard and Ctrl+C once it levels off. The run is still saved.
 - Evaluation samples from the policy (as the course does) rather than
   taking the argmax, so scores vary a little between runs.
+- The pixel version uses the state version's gamma, learning rate, and
+  episode budget, so the two TensorBoard runs compare directly. Expect it to
+  learn much more slowly, if at all: REINFORCE's noisy updates must now also
+  train the conv layers to see. Doing this well is what later units' methods
+  (A2C, PPO) are for.
 - `pull` unpickles `model.pt`, which runs code, so only pull repos you trust.

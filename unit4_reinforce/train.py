@@ -90,15 +90,17 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
     env = make_env(settings["env_id"])
 
     # The Hub's hyperparameters.json carries the env id and space sizes too,
-    # so the model can be rebuilt from that file alone.
+    # so the model can be rebuilt from that file alone. A vector state is
+    # stored as its length (course format); stacked frames as their full shape.
+    obs_shape = env.observation_space.shape
     hyperparameters = {
         **settings["hyperparameters"],
         "env_id": settings["env_id"],
-        "state_space": env.observation_space.shape[0],
+        "state_space": obs_shape[0] if len(obs_shape) == 1 else list(obs_shape),
         "action_space": int(env.action_space.n),
     }
     print(
-        f"{env_name}: {hyperparameters['state_space']} observation values, "
+        f"{env_name}: observation shape {obs_shape}, "
         f"{hyperparameters['action_space']} actions"
     )
 
@@ -131,16 +133,23 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
             n_train_eval_episodes=settings.get("n_train_eval_episodes", 10),
         )
 
-        mean_reward, std_reward = evaluate_agent(
-            eval_env,
-            hyperparameters["max_t"],
-            hyperparameters["n_evaluation_episodes"],
-            policy,
-        )
-        # Own tag: it uses n_evaluation_episodes, not the mid-training count,
-        # so it shouldn't share a curve with eval/mean_reward.
-        tb_writer.add_scalar("eval/final_mean_reward", mean_reward, len(scores))
-        tb_writer.add_scalar("eval/final_std_reward", std_reward, len(scores))
+        print(f"Final eval over {hyperparameters['n_evaluation_episodes']} episodes (Ctrl+C to skip)...")
+        try:
+            mean_reward, std_reward = evaluate_agent(
+                eval_env,
+                hyperparameters["max_t"],
+                hyperparameters["n_evaluation_episodes"],
+                policy,
+            )
+            # Own tag: it uses n_evaluation_episodes, not the mid-training count,
+            # so it shouldn't share a curve with eval/mean_reward.
+            tb_writer.add_scalar("eval/final_mean_reward", mean_reward, len(scores))
+            tb_writer.add_scalar("eval/final_std_reward", std_reward, len(scores))
+        except KeyboardInterrupt:
+            # A second Ctrl+C must not lose the trained policy: skip the score,
+            # save anyway, and score it later with `python main.py evaluate`.
+            mean_reward = std_reward = float("nan")
+            print("\nFinal eval skipped; saving the model without a score.")
     finally:
         tb_writer.close()
         env.close()

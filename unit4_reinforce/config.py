@@ -30,6 +30,22 @@ PIXELCOPTER_HYPERPARAMETERS = dict(
     lr=1e-4,
 )
 
+# --- Pixelcopter from pixels (course follow-up exercise) ---
+# Same game, but the policy sees the screen instead of the 7 hand-made
+# numbers, so it must find the copter and walls itself with a CNN. Kept the
+# state version's gamma/lr/budget so the two runs compare directly.
+PIXELCOPTER_PIXELS_ENV_ID = "Pixelcopter-PLE-pixels-v0"
+FRAME_STACK = 4  # frames per observation, so the CNN can see velocity
+PIXELCOPTER_PIXELS_HYPERPARAMETERS = dict(
+    policy_type="cnn",
+    h_size=256,  # fully connected layer after the conv layers
+    n_training_episodes=50_000,
+    n_evaluation_episodes=50,
+    max_t=10_000,
+    gamma=0.99,
+    lr=1e-4,
+)
+
 ENVIRONMENTS = {
     "cartpole": dict(
         env_id=CARTPOLE_ENV_ID,
@@ -44,6 +60,14 @@ ENVIRONMENTS = {
         env_id=PIXELCOPTER_ENV_ID,
         model_name="Reinforce-pixelcopter",
         hyperparameters=PIXELCOPTER_HYPERPARAMETERS,
+        print_every=1000,
+        train_eval_every=500,
+        n_train_eval_episodes=10,
+    ),
+    "pixelcopter-pixels": dict(
+        env_id=PIXELCOPTER_PIXELS_ENV_ID,
+        model_name="Reinforce-pixelcopter-pixels",
+        hyperparameters=PIXELCOPTER_PIXELS_HYPERPARAMETERS,
         print_every=1000,
         train_eval_every=500,
         n_train_eval_episodes=10,

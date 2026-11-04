@@ -1,9 +1,11 @@
 """CLI entrypoint tying the REINFORCE pipeline together.
 
 Usage:
-    python main.py train [--env cartpole|pixelcopter]
+    python main.py train [--env cartpole|pixelcopter|pixelcopter-pixels]
     python main.py evaluate [model_path]
     python main.py record [model_path] [out_path] [--episodes N]
+    python main.py visualize [model_path] [out_path]
+    python main.py visualize --untrained [out_path]
     python main.py push <model_path> [repo_id]
     python main.py pull <repo_id>
 
@@ -20,6 +22,7 @@ import evaluate as evaluate_mod
 import hub
 import record_video
 import train as train_mod
+import visualize as visualize_mod
 
 
 def _default_repo_id(model_path: str) -> str:
@@ -55,6 +58,11 @@ def main():
         help="How many episodes to record (default: config.VIDEO_EPISODES).",
     )
 
+    p_vis = sub.add_parser("visualize", help="Video of what a CNN model sees and detects")
+    p_vis.add_argument("model_path", nargs="?", default=None)
+    p_vis.add_argument("out_path", nargs="?", default=None)
+    p_vis.add_argument("--untrained", action="store_true", help="Use a fresh random network instead of a saved model.")
+
     p_push = sub.add_parser("push", help="Upload a saved model to the Hugging Face Hub")
     p_push.add_argument("model_path")
     p_push.add_argument("repo_id", nargs="?", default=None)
@@ -70,6 +78,11 @@ def main():
         evaluate_mod.evaluate(args.model_path)
     elif args.command == "record":
         record_video.record(args.model_path, args.out_path, episodes=args.episodes)
+    elif args.command == "visualize":
+        if args.untrained and args.model_path and not args.out_path:
+            # With --untrained there's no model, so a lone path is the output.
+            args.model_path, args.out_path = None, args.model_path
+        visualize_mod.visualize(args.model_path, args.out_path, untrained=args.untrained)
     elif args.command == "push":
         hub.push_to_hub(args.model_path, args.repo_id or _default_repo_id(args.model_path))
     elif args.command == "pull":
