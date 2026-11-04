@@ -50,6 +50,8 @@ def n_evaluation_episodes(env_id: str) -> int:
 
 def evaluate(model_path: str | Path | None = None):
     """Load a saved model and report its mean/std reward on a fresh env."""
+    model_path = model_path or latest_model_path()
+    print(f"Evaluating {model_path}")
     policy, hyperparameters = load_saved_model(model_path)
     env = make_env(hyperparameters["env_id"])
     mean_reward, std_reward = evaluate_agent(
