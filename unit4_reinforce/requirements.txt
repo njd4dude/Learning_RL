@@ -3,6 +3,7 @@ numpy
 torch
 tensorboard
 stable-baselines3
+optuna
 huggingface_hub
 imageio
 imageio-ffmpeg

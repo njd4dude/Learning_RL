@@ -106,6 +106,16 @@ PPO_KWARGS = dict(
     policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64])),
 )
 
+# --- PPO hyperparameter search (tune_ppo.py) ---
+TUNE_TRIALS = 30
+TUNE_WORKERS = 3  # trials at once; TUNE_WORKERS * (TUNE_N_ENVS + 1) processes
+TUNE_N_ENVS = 4
+TUNE_TIMESTEPS = 2_000_000
+TUNE_EVAL_EPISODES = 100  # the score each finished trial is ranked on
+TUNE_REPORT_STEPS = 400_000
+TUNE_REPORT_EPISODES = 30  # the check that stops weak trials early
+TUNE_PRUNE_AFTER_STEPS = 800_000
+
 # --- Hugging Face Hub ---
 USERNAME = "njdonato"
 

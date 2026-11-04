@@ -52,6 +52,7 @@ Run commands from `unit4_reinforce/`.
 | `reinforce.py`    | The algorithm itself: discounted returns, training loop, eval loop |
 | `train.py`        | Trains a policy and saves it, with TensorBoard logs, under `runs/` |
 | `train_ppo.py`    | Trains and scores PPO on the 7-number Pixelcopter, to compare with REINFORCE |
+| `tune_ppo.py`     | Searches PPO hyperparameters with Optuna, saving each trial under `runs/` |
 | `evaluate.py`     | Loads a saved model and reports mean/std reward                  |
 | `record_video.py` | Plays episodes and saves `.mp4` replays, for REINFORCE or PPO runs |
 | `visualize.py`    | Video of what the CNN sees: input frames, every conv feature map, action probabilities |
