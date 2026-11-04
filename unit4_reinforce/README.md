@@ -118,6 +118,9 @@ or `python evaluate.py`.
   one does.
 - Pixelcopter at 50k episodes takes hours. Watch `train/avg100_reward` in
   TensorBoard and Ctrl+C once it levels off. The run is still saved.
+- `time/fps` is environment steps per second, excluding evals. Use
+  `train/avg100_reward_by_step` to compare how quickly runs learn, since
+  episodes get longer as the agent improves.
 - Evaluation samples from the policy (as the course does) rather than
   taking the argmax, so scores vary a little between runs.
 - The pixel version uses the state version's gamma, learning rate, and

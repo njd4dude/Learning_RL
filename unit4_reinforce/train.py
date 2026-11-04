@@ -73,6 +73,9 @@ def _write_run_log(run_dir: Path, env_name: str, hyperparameters: dict, results:
         f"episodes_completed: {results['episodes_completed']}/{hyperparameters['n_training_episodes']}",
         f"mean_reward: {results['mean_reward']:.4f}",
         f"std_reward: {results['std_reward']:.4f}",
+        f"total_steps: {results['total_steps']}",
+        f"train_seconds: {results['train_seconds']:.1f}",
+        f"fps: {results['fps']:.1f}",
         f"tensorboard: tensorboard --logdir {config.RUNS_FOLDER}",
         "",
         "hyperparameters:",
@@ -119,7 +122,7 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
     # Separate env for eval, never the one used for training.
     eval_env = make_env(settings["env_id"])
     try:
-        scores = reinforce(
+        scores, total_steps, train_seconds = reinforce(
             env,
             policy,
             optimizer,
@@ -161,6 +164,10 @@ def train(env_name: str = config.DEFAULT_ENVIRONMENT, auto_tensorboard: bool | N
         "std_reward": std_reward,
         "episodes_completed": len(scores),
         "interrupted": len(scores) < hyperparameters["n_training_episodes"],
+        "total_steps": total_steps,
+        "train_seconds": train_seconds,
+        # Zero seconds if Ctrl+C lands before the first episode finishes.
+        "fps": total_steps / train_seconds if train_seconds else 0.0,
     }
 
     model_path = run_dir / "model.pt"

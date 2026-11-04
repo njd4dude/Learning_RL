@@ -1,5 +1,6 @@
 """The REINFORCE (Monte Carlo policy gradient) algorithm: training and evaluation loops."""
 
+import time
 from collections import deque
 
 import numpy as np
@@ -36,8 +37,8 @@ def reinforce(
     eval_env=None,
     train_eval_every: int = 0,
     n_train_eval_episodes: int = 10,
-) -> list[float]:
-    """Train `policy` with REINFORCE and return each episode's total reward.
+) -> tuple[list[float], int, float]:
+    """Train `policy` with REINFORCE; return (episode rewards, total steps, seconds).
 
     One update per episode: play it to the end with the current policy, then
     push up the log-probability of each action in proportion to the return
@@ -45,12 +46,18 @@ def reinforce(
 
     With an `eval_env` and `train_eval_every > 0`, the policy is also scored
     on `eval_env` every `train_eval_every` episodes and logged under eval/.
+
+    Seconds cover playing and updating only, not evals or logging, so FPS
+    (steps per second) measures training speed and doesn't dip at each eval.
     """
     scores_deque = deque(maxlen=100)
     scores = []
+    total_steps = 0
+    train_seconds = 0.0
 
     try:
         for i_episode in range(1, n_training_episodes + 1):
+            episode_start = time.perf_counter()
             saved_log_probs = []
             rewards = []
             state, _info = env.reset()
@@ -74,11 +81,20 @@ def reinforce(
             policy_loss.backward()
             optimizer.step()
 
+            train_seconds += time.perf_counter() - episode_start
+            total_steps += len(rewards)
+            fps = total_steps / train_seconds
+
             if tb_writer is not None:
                 tb_writer.add_scalar("train/episode_reward", score, i_episode)
                 tb_writer.add_scalar("train/avg100_reward", np.mean(scores_deque), i_episode)
                 tb_writer.add_scalar("train/episode_length", len(rewards), i_episode)
                 tb_writer.add_scalar("train/policy_loss", policy_loss.item(), i_episode)
+                tb_writer.add_scalar("time/fps", fps, i_episode)
+                tb_writer.add_scalar("time/total_steps", total_steps, i_episode)
+                # Same curve, x-axis in steps: episodes get longer as the agent
+                # improves, so this is the one that shows sample efficiency.
+                tb_writer.add_scalar("train/avg100_reward_by_step", np.mean(scores_deque), total_steps)
 
             if eval_env is not None and train_eval_every > 0 and i_episode % train_eval_every == 0:
                 eval_mean, eval_std = evaluate_agent(eval_env, max_t, n_train_eval_episodes, policy)
@@ -87,14 +103,17 @@ def reinforce(
                     tb_writer.add_scalar("eval/std_reward", eval_std, i_episode)
 
             if i_episode % print_every == 0:
-                print(f"Episode {i_episode}\tAverage Score: {np.mean(scores_deque):.2f}")
+                print(
+                    f"Episode {i_episode}\tAverage Score: {np.mean(scores_deque):.2f}"
+                    f"\tSteps: {total_steps}\tFPS: {fps:.0f}"
+                )
     except KeyboardInterrupt:
         print(
             f"\nInterrupted after {len(scores)}/{n_training_episodes} episodes "
             "— returning the partially trained policy."
         )
 
-    return scores
+    return scores, total_steps, train_seconds
 
 
 def evaluate_agent(env, max_steps: int, n_eval_episodes: int, policy) -> tuple[float, float]:
