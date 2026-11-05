@@ -41,6 +41,11 @@ def latest_run() -> Path:
     return models[-1].parent
 
 
+def run_algo(run_dir: Path) -> str:
+    """Read the algorithm from a folder named <date>_<time>_<algo>[_<name>]."""
+    return run_dir.name.split("_")[2]
+
+
 def load_best(run_dir: Path) -> DQN | PPO:
     """Load a run's best model, or its last one if it has no best saved.
 
@@ -50,8 +55,7 @@ def load_best(run_dir: Path) -> DQN | PPO:
     if not path.is_file():
         path = run_dir / "model.zip"
     print(f"Loading {path}")
-    # Folders are named <date>_<time>_<algo>[_<name>].
-    model_class = PPO if run_dir.name.split("_")[2] == "ppo" else DQN
+    model_class = PPO if run_algo(run_dir) == "ppo" else DQN
     return model_class.load(path, device="cpu")
 
 

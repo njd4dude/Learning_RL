@@ -3,7 +3,17 @@
 Every run says what it tests, with all three of these:
     python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
 
-Also takes `--algo ppo` for PPO, and `--timesteps 50000` for a chosen length.
+Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
+`--learning-rate 1e-4` to override config.py, and `--default-reward` to train on
+highway-env's reward rather than ENV_CONFIG.
+
+To continue from a saved model, in a new run folder:
+    python train.py --resume runs/<run>/model.zip --timesteps 60000 --name ...
+
+`--resume` also takes a file from a run's `checkpoints/`. `--timesteps` then means
+additional steps, and the model keeps its saved learning rate unless you pass one.
+Step counts carry on from the saved model. DQN checkpoints don't include the
+replay buffer, so a resumed DQN starts with an empty one.
 
 Each run writes a unique folder under `runs/` and adds an entry to
 EXPERIMENTS.md. Ctrl+C stops early and still saves. Watch it with
@@ -20,7 +30,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.logger import configure
 
 import config
-from evaluate import describe, load_best, make_envs, score
+from evaluate import describe, load_best, make_envs, run_algo, score
 
 MODELS = {"dqn": DQN, "ppo": PPO}
 
@@ -41,7 +51,8 @@ def _write_run_log(
         "",
         "hyperparameters:",
     ]
-    lines += [f"  {key}: {value}" for key, value in config.ALGORITHMS[algo]["kwargs"].items()]
+    hyperparameters = {**config.ALGORITHMS[algo]["kwargs"], "learning_rate": model.learning_rate}
+    lines += [f"  {key}: {value}" for key, value in hyperparameters.items()]
     (run_dir / "run.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -57,7 +68,15 @@ def _add_experiment(run_dir: Path, results: dict, hypothesis: str, change: str) 
         log.write(entry)
 
 
-def train(algo: str, timesteps: int | None, name: str, hypothesis: str, change: str) -> Path:
+def train(
+    algo: str,
+    timesteps: int | None,
+    name: str,
+    hypothesis: str,
+    change: str,
+    learning_rate: float | None = None,
+    resume: Path | None = None,
+) -> Path:
     settings = config.ALGORITHMS[algo]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = Path(config.RUNS_FOLDER) / f"{stamp}_{algo}_{name}"
@@ -66,7 +85,12 @@ def train(algo: str, timesteps: int | None, name: str, hypothesis: str, change: 
 
     env = make_envs()
     eval_env = make_envs()
-    model = MODELS[algo](env=env, device="cpu", **settings["kwargs"])
+    overrides = {"learning_rate": learning_rate} if learning_rate else {}
+    if resume:
+        model = MODELS[algo].load(resume, env=env, device="cpu", custom_objects=overrides)
+        change = f"{change} (resumed from {resume.as_posix()})"
+    else:
+        model = MODELS[algo](env=env, device="cpu", **{**settings["kwargs"], **overrides})
     model.set_logger(configure(str(run_dir / "tb"), ["stdout", "tensorboard"]))
 
     # These count calls, and each call is one step of every env.
@@ -92,6 +116,7 @@ def train(algo: str, timesteps: int | None, name: str, hypothesis: str, change: 
             total_timesteps=timesteps or settings["timesteps"],
             callback=callbacks,
             log_interval=settings["log_interval"],
+            reset_num_timesteps=resume is None,
         )
     except KeyboardInterrupt:
         print("\nInterrupted; saving the partially trained model.")
@@ -116,8 +141,19 @@ if __name__ == "__main__":
     )
     parser.add_argument("--algo", choices=config.ALGORITHMS, default="dqn")
     parser.add_argument("--timesteps", type=int, help="Defaults to the algorithm's value in config.py.")
+    parser.add_argument("--learning-rate", type=float, help="Defaults to the algorithm's value in config.py.")
+    parser.add_argument("--default-reward", action="store_true", help="Ignore ENV_CONFIG for this run.")
+    parser.add_argument("--resume", type=Path, help="A saved .zip to continue from. Sets the algorithm too.")
     parser.add_argument("--name", required=True, help="Short label for the folder, like penalty10.")
     parser.add_argument("--hypothesis", required=True, help="What this run should show.")
     parser.add_argument("--change", required=True, help="What differs from the run it builds on.")
     args = parser.parse_args()
-    train(args.algo, args.timesteps, args.name, args.hypothesis, args.change)
+    if args.default_reward:
+        config.ENV_CONFIG = {}
+    algo = args.algo
+    if args.resume:
+        if not args.resume.is_file():
+            parser.error(f"--resume file not found: {args.resume}")
+        source = args.resume.parent
+        algo = run_algo(source.parent if source.name == "checkpoints" else source)
+    train(algo, args.timesteps, args.name, args.hypothesis, args.change, args.learning_rate, args.resume)

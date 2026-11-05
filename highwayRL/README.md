@@ -35,6 +35,8 @@ python try_env.py --watch   # same, in a window
 
 # train DQN, or PPO with --algo ppo
 python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
+# continue a saved model for 60,000 more steps, in a new run folder
+python train.py --resume runs/<run>/model.zip --timesteps 60000 --name ... --hypothesis ... --change ...
 python evaluate.py          # reward and crash rate of the newest run
 python record_video.py      # save replays into the newest run's folder
 python record_video.py --watch   # watch the newest run live in a window
