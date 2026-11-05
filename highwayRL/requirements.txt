@@ -1,0 +1,8 @@
+highway-env
+gymnasium
+numpy
+torch
+tensorboard
+stable-baselines3
+imageio
+imageio-ffmpeg
