@@ -28,6 +28,7 @@ def _write_run_log(run_dir: Path, model: BaseAlgorithm, algo: str, seconds: floa
     lines = [
         f"env: {config.ENV_ID}",
         f"algo: {algo}",
+        f"env_config: {config.ENV_CONFIG}",
         f"trained_at: {datetime.now().isoformat(timespec='seconds')}",
         f"total_steps: {model.num_timesteps}",
         f"train_seconds: {seconds:.0f}",

@@ -23,7 +23,12 @@ gym.register_envs(highway_env)
 
 def make_envs():
     """Parallel copies of the game, since one alone is very slow."""
-    return make_vec_env(config.ENV_ID, n_envs=config.N_ENVS, vec_env_cls=SubprocVecEnv)
+    return make_vec_env(
+        config.ENV_ID,
+        n_envs=config.N_ENVS,
+        vec_env_cls=SubprocVecEnv,
+        env_kwargs=dict(config=config.ENV_CONFIG),
+    )
 
 
 def latest_run() -> Path:

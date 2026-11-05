@@ -63,6 +63,6 @@ tensorboard --logdir runs   # watch training
 - `crash_rate` counts episodes that ended before step 40.
 - Best DQN so far: 20% crashes and a mean reward of 28.73 over 200 episodes, at
   40k steps. Slower DQN settings did worse, at 51% crashes.
-- Fixed-action baselines over 200 episodes: always `SLOWER` scores 28.09 with
+- Fixed-action baselines over 200 episodes, with the default reward: always `SLOWER` scores 28.09 with
   0% crashes, always `IDLE` 16.06 with 94%, always `FASTER` 8.86 with 100%. A
   model has to beat 28.09 to be driving better than crawling along.

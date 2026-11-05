@@ -58,7 +58,7 @@ def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[f
 
 def record(run_dir: Path, episodes: int) -> None:
     model = load_best(run_dir)
-    env = gym.make(config.ENV_ID, render_mode="rgb_array")
+    env = gym.make(config.ENV_ID, render_mode="rgb_array", config=config.ENV_CONFIG)
     collector = FrameCollector(env)
 
     for episode in range(1, episodes + 1):
@@ -73,7 +73,7 @@ def record(run_dir: Path, episodes: int) -> None:
 
 def watch(run_dir: Path, episodes: int) -> None:
     model = load_best(run_dir)
-    env = gym.make(config.ENV_ID, render_mode="human", config={"real_time_rendering": True})
+    env = gym.make(config.ENV_ID, render_mode="human", config={**config.ENV_CONFIG, "real_time_rendering": True})
     for episode in range(1, episodes + 1):
         reward, steps, crashed = play_episode(env, model)
         print(f"episode {episode}: reward {reward:.2f}, steps {steps}, crashed {crashed}")

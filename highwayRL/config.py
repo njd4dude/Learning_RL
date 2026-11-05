@@ -2,6 +2,16 @@
 
 ENV_ID = "highway-v0"
 
+# Reward changes from highway-env's defaults. By default, normalizing pays about
+# 0.7 a step just for staying alive, so always braking scored as well as any
+# trained model. Without it, surviving earns little and only speed pays, so
+# crashes cost more to stop the agent getting reckless. Rewards from runs under
+# different settings don't compare, so evaluate.py scores everything with these.
+ENV_CONFIG = dict(
+    normalize_reward=False,
+    collision_reward=-2,
+)
+
 # --- DQN (train.py) ---
 # highway-env's documented DQN settings. A slower variant (learning_rate 1e-4,
 # buffer_size 50,000, target_update_interval 1,000) crashed far more: 51%
