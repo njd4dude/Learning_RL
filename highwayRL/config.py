@@ -54,9 +54,12 @@ TRAIN_EVAL_STEPS = 2_500
 MAX_EPISODE_STEPS = 40  # highway-v0's "duration"; shorter episodes crashed
 
 # --- Saving ---
-# Each run writes runs/<timestamp>_<algo>/ with best_model.zip (top mid-training
-# eval), model.zip (the last step), run.txt, and TensorBoard logs under tb/.
+# Each run writes runs/<timestamp>_<algo>_<name>/ with best_model.zip (top
+# mid-training eval), model.zip (the last step), run.txt, TensorBoard logs under
+# tb/, and later eval.txt and videos/. runs/ is gitignored, so EXPERIMENTS.md
+# keeps the tracked record of what each run tested.
 RUNS_FOLDER = "runs"
+EXPERIMENTS_FILE = "EXPERIMENTS.md"
 CHECKPOINT_STEPS = 5_000
 
 # What differs per algorithm. PPO takes far more steps, so it evals less often.
@@ -78,6 +81,5 @@ ALGORITHMS = {
 }
 
 # --- Video recording ---
-VIDEO_FOLDER = "videos"
 VIDEO_FPS = 15  # the simulator's 15 frames a second, so videos play in real time
 VIDEO_EPISODES = 3

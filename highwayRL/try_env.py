@@ -5,7 +5,7 @@ Usage:
     python try_env.py --episodes 1
     python try_env.py --watch        # open a window instead of saving a video
 
-Without --watch, the first episode is saved to `videos/01_random/random.mp4`.
+Without --watch, the first episode is saved to `runs/baselines/random.mp4`.
 """
 
 import argparse
@@ -18,7 +18,7 @@ import imageio
 gym.register_envs(highway_env)
 
 ENV_ID = "highway-v0"
-VIDEO_PATH = Path("videos/01_random/random.mp4")
+VIDEO_PATH = Path("runs/baselines/random.mp4")
 VIDEO_FPS = 2  # one frame per decision, and the agent decides once a second
 
 

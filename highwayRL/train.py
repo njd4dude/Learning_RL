@@ -1,12 +1,13 @@
 """Train a DQN or PPO agent on highway-v0.
 
-Usage:
-    python train.py                     # new DQN run
-    python train.py --algo ppo          # new PPO run
-    python train.py --timesteps 50000   # new run of a chosen length
+Every run says what it tests, with all three of these:
+    python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
 
-Each run writes a unique folder under `runs/`. Ctrl+C stops early and still
-saves. Watch it with `tensorboard --logdir runs`.
+Also takes `--algo ppo` for PPO, and `--timesteps 50000` for a chosen length.
+
+Each run writes a unique folder under `runs/` and adds an entry to
+EXPERIMENTS.md. Ctrl+C stops early and still saves. Watch it with
+`tensorboard --logdir runs`.
 """
 
 import argparse
@@ -24,8 +25,12 @@ from evaluate import describe, load_best, make_envs, score
 MODELS = {"dqn": DQN, "ppo": PPO}
 
 
-def _write_run_log(run_dir: Path, model: BaseAlgorithm, algo: str, seconds: float, results: dict) -> None:
+def _write_run_log(
+    run_dir: Path, model: BaseAlgorithm, algo: str, seconds: float, results: dict, hypothesis: str, change: str
+) -> None:
     lines = [
+        f"hypothesis: {hypothesis}",
+        f"change: {change}",
         f"env: {config.ENV_ID}",
         f"algo: {algo}",
         f"env_config: {config.ENV_CONFIG}",
@@ -40,10 +45,22 @@ def _write_run_log(run_dir: Path, model: BaseAlgorithm, algo: str, seconds: floa
     (run_dir / "run.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def train(algo: str = "dqn", timesteps: int | None = None) -> Path:
+def _add_experiment(run_dir: Path, results: dict, hypothesis: str, change: str) -> None:
+    entry = (
+        f"\n### {run_dir.name}\n\n"
+        f"- **Hypothesis:** {hypothesis}\n"
+        f"- **Change:** {change}\n"
+        f"- **Result:** {describe(results)} ({config.EVAL_EPISODES} episodes)\n"
+        "- **Conclusion:** TODO\n"
+    )
+    with Path(config.EXPERIMENTS_FILE).open("a", encoding="utf-8") as log:
+        log.write(entry)
+
+
+def train(algo: str, timesteps: int | None, name: str, hypothesis: str, change: str) -> Path:
     settings = config.ALGORITHMS[algo]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = Path(config.RUNS_FOLDER) / f"{stamp}_{algo}"
+    run_dir = Path(config.RUNS_FOLDER) / f"{stamp}_{algo}_{name}"
     run_dir.mkdir(parents=True)
     print(f"Run folder: {run_dir}")
 
@@ -87,7 +104,8 @@ def train(algo: str = "dqn", timesteps: int | None = None) -> Path:
     print(f"Final eval over {config.EVAL_EPISODES} episodes...")
     results = score(load_best(run_dir))
     print(describe(results))
-    _write_run_log(run_dir, model, algo, seconds, results)
+    _write_run_log(run_dir, model, algo, seconds, results, hypothesis, change)
+    _add_experiment(run_dir, results, hypothesis, change)
     print(f"Saved models to {run_dir}")
     return run_dir
 
@@ -98,5 +116,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--algo", choices=config.ALGORITHMS, default="dqn")
     parser.add_argument("--timesteps", type=int, help="Defaults to the algorithm's value in config.py.")
+    parser.add_argument("--name", required=True, help="Short label for the folder, like penalty10.")
+    parser.add_argument("--hypothesis", required=True, help="What this run should show.")
+    parser.add_argument("--change", required=True, help="What differs from the run it builds on.")
     args = parser.parse_args()
-    train(args.algo, args.timesteps)
+    train(args.algo, args.timesteps, args.name, args.hypothesis, args.change)

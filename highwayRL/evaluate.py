@@ -3,9 +3,12 @@
 Usage:
     python evaluate.py                  # newest run
     python evaluate.py runs/<run>       # a specific run folder
+
+Each score is added to `eval.txt` in the run folder.
 """
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 import gymnasium as gym
@@ -47,7 +50,8 @@ def load_best(run_dir: Path) -> DQN | PPO:
     if not path.is_file():
         path = run_dir / "model.zip"
     print(f"Loading {path}")
-    model_class = PPO if run_dir.name.endswith("_ppo") else DQN
+    # Folders are named <date>_<time>_<algo>[_<name>].
+    model_class = PPO if run_dir.name.split("_")[2] == "ppo" else DQN
     return model_class.load(path, device="cpu")
 
 
@@ -81,4 +85,8 @@ if __name__ == "__main__":
 
     run_dir = Path(args.run_dir) if args.run_dir else latest_run()
     print(f"Scoring {run_dir} over {args.episodes} episodes...")
-    print(describe(score(load_best(run_dir), args.episodes)))
+    result = describe(score(load_best(run_dir), args.episodes))
+    print(result)
+    stamp = datetime.now().isoformat(timespec="minutes")
+    with (run_dir / "eval.txt").open("a", encoding="utf-8") as log:
+        log.write(f"{stamp}  episodes={args.episodes}  reward={config.ENV_CONFIG}  {result}\n")

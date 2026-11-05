@@ -30,23 +30,45 @@ Run commands from `highwayRL/`.
 ## Usage
 
 ```bash
-python try_env.py           # random actions, saves a video to videos/01_random/
+python try_env.py           # random actions, saves a video to runs/baselines/
 python try_env.py --watch   # same, in a window
 
-python train.py             # train DQN, writing a folder under runs/
-python train.py --algo ppo  # train PPO instead
+# train DQN, or PPO with --algo ppo
+python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
 python evaluate.py          # reward and crash rate of the newest run
-python record_video.py      # save replays of the newest run to videos/
+python record_video.py      # save replays into the newest run's folder
 python record_video.py --watch   # watch the newest run live in a window
 
 tensorboard --logdir runs   # watch training
 ```
+
+## Experiments
+
+Every run tests one idea. `train.py` requires a name, hypothesis and change,
+and adds an entry to [EXPERIMENTS.md](EXPERIMENTS.md); fill in its conclusion
+after looking at the results. That file is tracked by git, while `runs/` isn't.
+
+Everything from a run stays in its folder:
+
+```
+runs/20261104_215246_dqn_penalty5/
+    run.txt             hypothesis, change, settings, final eval
+    eval.txt            every evaluate.py score
+    videos/             replays
+    best_model.zip      top mid-training eval
+    model.zip           the last step
+    train_output.txt    console log, when saved
+    tb/, checkpoints/
+```
+
+`runs/baselines/` holds the random-agent video and fixed-action scores.
 
 ## Files
 
 | File              | Purpose                                                  |
 |-------------------|----------------------------------------------------------|
 | `config.py`       | All settings: env id, DQN and PPO hyperparameters, eval and video |
+| `EXPERIMENTS.md`  | Hypothesis, change, result and conclusion of every run   |
 | `train.py`        | Trains DQN or PPO, keeping the best-scoring model under `runs/` |
 | `evaluate.py`     | Scores a run: reward, steps survived, crash rate         |
 | `record_video.py` | Saves `.mp4` replays of a run                            |
@@ -61,10 +83,7 @@ tensorboard --logdir runs   # watch training
   `record_video.py` use the best one. The eval that picks it is only 24
   episodes, so its score runs a little high: trust the final eval in `run.txt`.
 - `crash_rate` counts episodes that ended before step 40.
-- Best DQN so far: 20% crashes and a mean reward of 28.73 over 200 episodes, at
-  40k steps. Slower DQN settings did worse, at 51% crashes.
+- Results and the current ranking are in [EXPERIMENTS.md](EXPERIMENTS.md).
 - Fixed-action baselines over 200 episodes, with the default reward: always `SLOWER` scores 28.09 with
   0% crashes, always `IDLE` 16.06 with 94%, always `FASTER` 8.86 with 100%. A
   model has to beat 28.09 to be driving better than crawling along.
-- `videos/` is gitignored. New replays land in `videos/<run-folder>/`; rename the
-  folder to say what the model was, like `04_dqn-40k_crash20pct`.
