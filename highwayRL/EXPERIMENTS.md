@@ -7,31 +7,39 @@ Each run's folder under `runs/` has its videos, models and eval scores.
 
 ## Ranking
 
-All scored by `evaluate.py` on `best_model.zip` (the smoke test has only
-`model.zip`) over 200 episodes, with the same reward: `normalize_reward=False`,
-`collision_reward=-5`. Always `SLOWER` scores about 1.9 on this scale.
+Sorted by distance per episode. Distance, speed and crash rate don't depend on
+the reward, so they compare across every run. Own reward is the score on the
+reward that run trained with, so those only compare between runs with the same
+reward. All are `evaluate.py --own-reward` over 200 episodes, on `best_model.zip`
+(the smoke test has only `model.zip`).
 
-Mean reward is accurate to about ±0.6 to ±1.1, and crash rate to about ±6 to ±7
-points at the higher rates. Each result is one training run, with no repeat
-seeds, so a real difference between runs could still be luck in training.
+Always `SLOWER` crawls at 20 m/s for about 800 m. The maximum is 1,200 m: 30 m/s
+for 40 steps. Crash rates are accurate to about ±6 to ±7 points at the higher
+rates, and two scores of the same model can differ by more than that. Each result
+is one training run, with no repeat seeds.
 
-| Rank | Run | Trained with | Mean reward | Crash rate | Mean steps |
+| Run | Trained with | Distance | Crash rate | Mean speed | Own reward |
 |---|---|---|---|---|---|
-| 1 (tie) | `20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 11.26 | 44% | 31.2 |
-| 1 (tie) | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 10.85 | 42% | 32.7 |
-| 3 (tie) | `20261104_190015_ppo_200k` | Default reward | 7.15 | 24% | 33.8 |
-| 3 (tie) | `20261104_171828_dqn_40k` | Default reward | 6.88 | 20% | 35.2 |
-| 5 | `20261104_161334_dqn_20k` | Default reward | 5.69 | 24% | 35.6 |
-| 6 (tie) | `20261105_113120_ppo_40k-lr3e-4` | No normalizing, -5 crash | 4.31 | 10% | 37.6 |
-| 6 (tie) | `20261104_180445_dqn_40k-slow-settings` | Default reward | 4.17 | 50% | 29.7 |
-| 8 | `20261105_111332_ppo_20k-lr3e-4` | No normalizing, -5 crash | 3.16 | 8% | 38.2 |
-| 9 (tie) | `20261105_105138_ppo_20k-lr1e-4-default-reward` | Default reward | 2.00 | 2% | 39.5 |
-| 9 (tie) | `20261105_102757_ppo_20k-lr1e-4` | No normalizing, -5 crash | 1.92 | 1% | 39.6 |
-| 11 | `20261104_161212_dqn_smoke-test` | Default reward | -0.84 | 100% | 10.4 |
+| `20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
+| `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
+| `20261104_171828_dqn_40k` | Default reward | 864 m | 17% | 23.9 m/s | 29.59 |
+| `20261104_190015_ppo_200k` | Default reward | 825 m | 22% | 24.1 m/s | 28.26 |
+| `20261104_161334_dqn_20k` | Default reward | 824 m | 20% | 23.2 m/s | 28.31 |
+| `20261105_113120_ppo_40k-lr3e-4` | No normalizing, -5 crash | 819 m | 8% | 21.4 m/s | 4.55 |
+| `20261105_102757_ppo_20k-lr1e-4` | No normalizing, -5 crash | 798 m | 2% | 20.1 m/s | 2.26 |
+| `20261105_105138_ppo_20k-lr1e-4-default-reward` | Default reward | 794 m | 1% | 20.0 m/s | 27.79 |
+| `20261105_111332_ppo_20k-lr3e-4` | No normalizing, -5 crash | 786 m | 8% | 20.8 m/s | 2.71 |
+| `20261104_180445_dqn_40k-slow-settings` | Default reward | 765 m | 40% | 24.0 m/s | 25.68 |
+| `20261105_121448_ppo_65k-lr3e-4-resumed` | No normalizing, -5 crash | 752 m | 30% | 22.3 m/s | 4.35 |
+| `20261104_161212_dqn_smoke-test` | Default reward | 288 m | 100% | 28.5 m/s | 8.73 |
+
+Best by goal: `penalty5` or `penalty2` for speed and distance, `dqn_40k` for
+balance, and `ppo_40k-lr3e-4` for safety while still beating crawling.
 
 ## Runs
 
-Scores below are from the ranking table above. The hypotheses for these first
+Rewards below are scored with no normalizing and a -5 crash penalty, so their
+scale can differ from the table above. The hypotheses for these first
 seven runs were reconstructed afterwards from commits and notes, not written
 before training.
 
@@ -140,3 +148,11 @@ before training.
   far from DQN penalty5's 10.85 at the same step count. PPO is much safer (10% crashes
   against 42%) but slower, at about 0.13 reward per step before crash penalties against
   0.40. Mid-training evals rose to 4.73, then gave 4.18 at the end. One run each.
+
+### 20261105_121448_ppo_65k-lr3e-4-resumed
+
+- **Hypothesis:** More steps let PPO catch DQN penalty5's speed (10.85 reward) while staying safer than its 42% crashes
+- **Change:** Resumed the 40k run's best model (about 30k steps) on the same learning rate and reward. Planned 100k, stopped by hand at about 65k, so it has no `model.zip`.
+- **Result:** mean_reward=5.19 +/- 3.83, mean_steps=36.4/40, crash_rate=18% (200 episodes, best model at about 60k steps)
+- **Conclusion:** Partly supported, on too few steps to judge: reward rose from 4.31 and crashes from 10%, as it drove a little faster, at about 0.17 reward per step before crash penalties. It's still far from penalty5's 10.85 and 0.40. `ep_rew_mean` showed no clear trend, while evals rose slowly. One run.
+- **Rescore:** A second 200 episodes on the same model and reward gave 4.35 with 30% crashes, so the first score ran high. Over both, it's about 4.77 with 24% crashes, level with the 40k run on reward and crashing more. That undoes the gain above.

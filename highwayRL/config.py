@@ -1,4 +1,12 @@
-"""Shared settings for the highway-v0 project."""
+"""Shared settings for the highway-v0 project. Import this before numpy or torch."""
+
+import os
+
+# One math thread per process. The envs already run in parallel, and extra threads
+# only compete with them: this ran PPO 14% faster at 12 envs. It must be set before
+# numpy and torch load, and the env processes inherit it.
+for variable in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+    os.environ.setdefault(variable, "1")
 
 ENV_ID = "highway-v0"
 

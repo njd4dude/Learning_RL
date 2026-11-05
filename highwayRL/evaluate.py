@@ -3,13 +3,18 @@
 Usage:
     python evaluate.py                  # newest run
     python evaluate.py runs/<run>       # a specific run folder
+    python evaluate.py --own-reward     # on the reward the run trained with
 
-Each score is added to `eval.txt` in the run folder.
+Mean speed, distance and crash rate don't depend on the reward, so they compare
+across all runs. Each score is added to `eval.txt` in the run folder.
 """
 
 import argparse
+import ast
 from datetime import datetime
 from pathlib import Path
+
+import config  # first, to limit math threads before numpy and torch load
 
 import gymnasium as gym
 import highway_env
@@ -18,8 +23,6 @@ from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import SubprocVecEnv
-
-import config
 
 gym.register_envs(highway_env)
 
@@ -59,10 +62,34 @@ def load_best(run_dir: Path) -> DQN | PPO:
     return model_class.load(path, device="cpu")
 
 
+def trained_reward(run_dir: Path) -> dict:
+    """Read a run's reward settings. Runs from before they were logged used the default."""
+    for line in (run_dir / "run.txt").read_text(encoding="utf-8").splitlines():
+        if line.startswith("env_config: "):
+            return ast.literal_eval(line.removeprefix("env_config: "))
+    return {}
+
+
 def score(model: DQN | PPO, episodes: int = config.EVAL_EPISODES) -> dict:
     env = make_envs()
+    distances = []
+    travelled = np.zeros(env.num_envs)
+
+    def track_distance(local_vars: dict, _globals: dict) -> None:
+        # Decisions are one simulated second apart, so each speed adds that many metres.
+        i = local_vars["i"]
+        travelled[i] += local_vars["info"]["speed"]
+        if local_vars["done"]:
+            distances.append(float(travelled[i]))
+            travelled[i] = 0
+
     rewards, lengths = evaluate_policy(
-        model, env, n_eval_episodes=episodes, deterministic=True, return_episode_rewards=True
+        model,
+        env,
+        n_eval_episodes=episodes,
+        deterministic=True,
+        return_episode_rewards=True,
+        callback=track_distance,
     )
     env.close()
     return {
@@ -70,6 +97,8 @@ def score(model: DQN | PPO, episodes: int = config.EVAL_EPISODES) -> dict:
         "std_reward": float(np.std(rewards)),
         "mean_steps": float(np.mean(lengths)),
         "crash_rate": float(np.mean(np.array(lengths) < config.MAX_EPISODE_STEPS)),
+        "mean_distance": float(np.mean(distances)),
+        "mean_speed": float(np.sum(distances) / np.sum(lengths)),
     }
 
 
@@ -77,7 +106,8 @@ def describe(results: dict) -> str:
     return (
         f"mean_reward={results['mean_reward']:.2f} +/- {results['std_reward']:.2f}, "
         f"mean_steps={results['mean_steps']:.1f}/{config.MAX_EPISODE_STEPS}, "
-        f"crash_rate={results['crash_rate']:.0%}"
+        f"crash_rate={results['crash_rate']:.0%}, "
+        f"mean_speed={results['mean_speed']:.1f}m/s, mean_distance={results['mean_distance']:.0f}m"
     )
 
 
@@ -85,9 +115,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dir", nargs="?", help="Run folder. Defaults to the newest.")
     parser.add_argument("--episodes", type=int, default=config.EVAL_EPISODES)
+    parser.add_argument("--own-reward", action="store_true", help="Use the reward the run trained with.")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir) if args.run_dir else latest_run()
+    if args.own_reward:
+        config.ENV_CONFIG = trained_reward(run_dir)
     print(f"Scoring {run_dir} over {args.episodes} episodes...")
     result = describe(score(load_best(run_dir), args.episodes))
     print(result)

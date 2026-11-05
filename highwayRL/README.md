@@ -78,8 +78,9 @@ runs/20261104_215246_dqn_penalty5/
 
 ## Notes
 
-- The simulator manages only about 6 steps a second per env, so training runs
-  12 envs in parallel. 20,000 steps took about 17 minutes.
+- The simulator is slow, so training runs 12 envs in parallel. PPO manages about
+  44 steps a second with one math thread per process, against 38 by default, and
+  16 envs reached 48. `config.py` sets the one-thread limit.
 - DQN can get worse late in training, so each run keeps `best_model.zip`, the
   top mid-training eval, beside `model.zip`, the last step. `evaluate.py` and
   `record_video.py` use the best one. The eval that picks it is only 24

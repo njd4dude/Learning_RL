@@ -24,12 +24,13 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+import config  # first, to limit math threads before torch loads
+
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.logger import configure
 
-import config
 from evaluate import describe, load_best, make_envs, run_algo, score
 
 MODELS = {"dqn": DQN, "ppo": PPO}
