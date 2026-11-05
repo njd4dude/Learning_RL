@@ -6,7 +6,7 @@ Usage:
     python record_video.py --episodes 5
     python record_video.py --watch          # live window, no video saved
 
-Videos land in `videos/<run-folder>-episode-01.mp4`, `-02.mp4`, ...
+Videos land in `videos/<run-folder>/episode-01.mp4`, `episode-02.mp4`, ...
 """
 
 import argparse
@@ -64,8 +64,8 @@ def record(run_dir: Path, episodes: int) -> None:
     for episode in range(1, episodes + 1):
         collector.frames = []
         reward, steps, crashed = play_episode(env, model, collector)
-        path = Path(config.VIDEO_FOLDER) / f"{run_dir.name}-episode-{episode:02d}.mp4"
-        path.parent.mkdir(exist_ok=True)
+        path = Path(config.VIDEO_FOLDER) / run_dir.name / f"episode-{episode:02d}.mp4"
+        path.parent.mkdir(parents=True, exist_ok=True)
         imageio.mimsave(path, collector.frames, fps=config.VIDEO_FPS, macro_block_size=1)
         print(f"{path}: reward {reward:.2f}, steps {steps}, crashed {crashed}")
     env.close()

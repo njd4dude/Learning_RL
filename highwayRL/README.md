@@ -30,7 +30,7 @@ Run commands from `highwayRL/`.
 ## Usage
 
 ```bash
-python try_env.py           # random actions, saves videos/random.mp4
+python try_env.py           # random actions, saves a video to videos/01_random/
 python try_env.py --watch   # same, in a window
 
 python train.py             # train DQN, writing a folder under runs/
@@ -66,3 +66,5 @@ tensorboard --logdir runs   # watch training
 - Fixed-action baselines over 200 episodes, with the default reward: always `SLOWER` scores 28.09 with
   0% crashes, always `IDLE` 16.06 with 94%, always `FASTER` 8.86 with 100%. A
   model has to beat 28.09 to be driving better than crawling along.
+- `videos/` is gitignored. New replays land in `videos/<run-folder>/`; rename the
+  folder to say what the model was, like `04_dqn-40k_crash20pct`.

@@ -9,7 +9,7 @@ ENV_ID = "highway-v0"
 # different settings don't compare, so evaluate.py scores everything with these.
 ENV_CONFIG = dict(
     normalize_reward=False,
-    collision_reward=-2,
+    collision_reward=-5,
 )
 
 # --- DQN (train.py) ---
