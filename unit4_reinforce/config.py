@@ -85,9 +85,9 @@ DEFAULT_ENVIRONMENT = "cartpole"
 DEVICE = "cpu"
 
 # --- PPO on Pixelcopter (train_ppo.py) ---
-# PPO's usual starting values. ent_coef rewards keeping some randomness, since
-# the REINFORCE models became almost certain of every move.
-PPO_N_ENVS = 8
+# The best settings from tune_ppo.py (trial 29), which scored 277.9 against
+# 180.5 for PPO's usual starting values. See the README's PPO results.
+PPO_N_ENVS = 4  # the search's value; n_steps and batch_size were tuned with it
 PPO_TIMESTEPS = 5_000_000
 PPO_EVAL_EPISODES = 200
 PPO_TRAIN_EVAL_EPISODES = 20
@@ -95,15 +95,15 @@ PPO_TRAIN_EVAL_STEPS = 100_000
 PPO_CHECKPOINT_STEPS = 500_000
 PPO_KWARGS = dict(
     policy="MlpPolicy",
-    n_steps=512,  # per env, so 4096 steps between updates
-    batch_size=256,
-    n_epochs=10,
-    learning_rate=3e-4,
-    gamma=0.99,
-    gae_lambda=0.95,
-    ent_coef=0.01,
-    clip_range=0.2,
-    policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64])),
+    n_steps=2048,  # per env, so 8192 steps between updates
+    batch_size=512,
+    n_epochs=20,
+    learning_rate=0.0002155342736512237,
+    gamma=0.98,
+    gae_lambda=0.98,
+    ent_coef=0.0004876532760088561,
+    clip_range=0.3,
+    policy_kwargs=dict(net_arch=dict(pi=[128, 128], vf=[128, 128])),
 )
 
 # --- PPO hyperparameter search (tune_ppo.py) ---

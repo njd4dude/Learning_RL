@@ -96,6 +96,38 @@ python main.py pull <username>/Reinforce-cartpole
 Each module also works standalone, e.g. `python train.py --env pixelcopter`
 or `python evaluate.py`.
 
+## PPO results
+
+`tune_ppo.py` tried 32 sets of PPO settings on the 7-number Pixelcopter, each
+training a new agent. 25 ran the full 2M steps and 7 were stopped early. The
+top three were then retested with the original PPO settings, over 300 new
+episodes each, using sampled actions:
+
+| Model                        | Trained for | Mean  | +/- noise | Median |
+|------------------------------|-------------|-------|-----------|--------|
+| Trial 29                     | 2M steps    | 277.9 | 15.0      | 193.5  |
+| Trial 6                      | 2M steps    | 247.6 | 14.0      | 176.0  |
+| Trial 11                     | 2M steps    | 212.4 | 11.2      | 151.5  |
+| Original settings            | 5M steps    | 180.5 | 9.8       | 139.5  |
+
+Trial 29 and trial 6 both clearly beat the original settings, but the gap
+between them could be chance. Each set of settings has only been trained once,
+so some of trial 29's lead may be a lucky run. `config.py` now holds trial 29's
+settings:
+
+| Setting         | Original | Trial 29 |
+|-----------------|----------|----------|
+| `n_envs`        | 8        | 4        |
+| `n_steps`       | 512      | 2048     |
+| `batch_size`    | 256      | 512      |
+| `n_epochs`      | 10       | 20       |
+| `learning_rate` | 0.0003   | 0.000216 |
+| `gamma`         | 0.99     | 0.98     |
+| `gae_lambda`    | 0.95     | 0.98     |
+| `ent_coef`      | 0.01     | 0.000488 |
+| `clip_range`    | 0.2      | 0.3      |
+| Network layers  | 64, 64   | 128, 128 |
+
 ## What changed from the notebook
 
 - Dropped Colab-only bits (`apt`, `xvfb` / `pyvirtualdisplay`, `notebook_login`,
