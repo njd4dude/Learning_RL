@@ -11,7 +11,9 @@ caption of the decision being carried out: its action, the reward from the decis
 before it, and the running total. The last frame holds so the ending can be read.
 Below the road is a panel of what the model saw for that same decision. For numbers,
 that's the exact values it was given, what they mean, and a map drawn only from
-them. For images, it's the frames themselves.
+them. For images, it's the frames themselves. For DQN, a last panel shows its Q-value
+for each action and how its prediction compares with the target training aims for.
+Nothing is trained here, so that target is only worked out to be shown.
 """
 
 import argparse
@@ -21,6 +23,7 @@ import gymnasium as gym
 import highway_env
 import imageio
 import numpy as np
+import torch
 from highway_env.road.lane import AbstractLane
 from PIL import Image, ImageDraw, ImageFont
 
@@ -53,13 +56,15 @@ class FrameCollector:
         self.frames = []
         self.caption = ""
         self.panel = None
+        self.q_panel = None
         env.unwrapped.set_record_video_wrapper(self)
 
     def _capture_frame(self) -> None:
         frame = Image.fromarray(self.env.render())
         draw = ImageDraw.Draw(frame)
         draw.text((8, 6), self.caption, font=CAPTION_FONT, fill="white", stroke_width=2, stroke_fill="black")
-        self.frames.append(np.vstack([np.asarray(frame), self.panel]))
+        panels = [] if self.q_panel is None else [self.q_panel]
+        self.frames.append(np.vstack([np.asarray(frame), self.panel, *panels]))
 
 
 def _car_meaning(car: dict) -> str:
@@ -185,6 +190,39 @@ def _observation_panel(env, obs: np.ndarray, action: int, step: int) -> np.ndarr
     return np.asarray(panel)
 
 
+def _q_values(model, network, obs: np.ndarray) -> np.ndarray:
+    """Get one DQN network's estimate of the future reward of each action."""
+    with torch.no_grad():
+        return network(model.policy.obs_to_tensor(obs)[0])[0].cpu().numpy()
+
+
+def _target_text(model, step: int, predicted: float, reward: float, next_obs: np.ndarray, terminated: bool) -> str:
+    """Fill in the target for a finished decision, using the target network as training does."""
+    if terminated:  # nothing follows a crash, so there's no future reward to add
+        target = reward
+        sum_text = f"{reward:.2f} (episode over)"
+    else:
+        future = _q_values(model, model.q_net_target, next_obs).max()
+        target = reward + model.gamma * future
+        sum_text = f"{reward:.2f} + {model.gamma:.2f} x {future:.2f} = {target:.2f}"
+    return f"Decision {step}: predicted {predicted:.2f}, target {sum_text}, error {target - predicted:+.2f}"
+
+
+def _q_panel(env, q_values: np.ndarray, action: int, target_text: str) -> np.ndarray:
+    """Draw each action's Q-value, marking the chosen one, above the latest target."""
+    width = env.unwrapped.config["screen_width"]
+    panel = Image.new("RGB", (width, TITLE_HEIGHT + ROW_HEIGHT * 2), PANEL_BACKGROUND)
+    draw = ImageDraw.Draw(panel)
+    draw.text((8, 4), "Q-values: its estimate of the future reward of each action", font=PANEL_FONT, fill=PANEL_TEXT)
+    column_width = (width - 16) / len(q_values)
+    for index, value in enumerate(q_values):
+        name = env.unwrapped.action_type.actions[index]
+        colour = YOUR_CAR if index == action else PANEL_FADED
+        draw.text((8 + index * column_width, TITLE_HEIGHT), f"{name} {value:.2f}", font=PANEL_FONT, fill=colour)
+    draw.text((8, TITLE_HEIGHT + ROW_HEIGHT), target_text, font=PANEL_FONT, fill=PANEL_TEXT)
+    return np.asarray(panel)
+
+
 def _caption(
     env, action: int, step: int, total: float, reward: float | None = None, crashed: bool = False
 ) -> str:
@@ -199,6 +237,8 @@ def _caption(
 def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[float, int, bool]:
     """Play one episode; return its reward, decisions made, and whether it crashed."""
     obs, _info = env.reset()
+    show_q = collector is not None and hasattr(model, "q_net")
+    target_text = "Decision 1: its target is known once it finishes"
 
     total_reward = 0.0
     last_reward = None
@@ -209,6 +249,9 @@ def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[f
         if collector:
             collector.panel = _observation_panel(env, obs, int(action), steps + 1)
             collector.caption = _caption(env, int(action), steps + 1, total_reward, last_reward)
+            if show_q:
+                q_values = _q_values(model, model.q_net, obs)
+                collector.q_panel = _q_panel(env, q_values, int(action), target_text)
             if steps == 0:
                 collector._capture_frame()
         obs, reward, terminated, truncated, info = env.step(int(action))
@@ -217,6 +260,9 @@ def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[f
         steps += 1
         if collector:
             collector.caption = _caption(env, int(action), steps, total_reward, reward, info["crashed"])
+            if show_q:
+                target_text = _target_text(model, steps, q_values[int(action)], reward, obs, terminated)
+                collector.q_panel = _q_panel(env, q_values, int(action), target_text)
             collector._capture_frame()
     if collector:
         collector.frames.extend(collector.frames[-1:] * config.VIDEO_END_HOLD_FRAMES)

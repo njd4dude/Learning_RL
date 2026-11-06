@@ -38,7 +38,7 @@ python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash pe
 # continue a saved model for 60,000 more steps, in a new run folder
 python train.py --resume runs/<run>/model.zip --timesteps 60000 --name ... --hypothesis ... --change ...
 python evaluate.py          # score the newest run on the reward it trained with
-python record_video.py      # save replays, with what the model saw, into the newest run's folder
+python record_video.py      # save replays, with what the model saw and DQN's Q-values, into the newest run's folder
 python record_video.py --watch   # watch the newest run live in a window
 
 tensorboard --logdir runs   # watch training
