@@ -76,35 +76,53 @@ def trained_reward(run_dir: Path) -> dict:
     return {}
 
 
+class DrivingStats:
+    """Adds up what happened in eval episodes, whichever reward they were scored on."""
+
+    def __init__(self, n_envs: int):
+        self.travelled = np.zeros(n_envs)
+        self.steps = np.zeros(n_envs, dtype=int)
+        self.distances = []
+        self.lengths = []
+
+    def update(self, local_vars: dict, _globals: dict | None = None) -> None:
+        """Take one env's step, as evaluate_policy passes it to a callback."""
+        i = local_vars["i"]
+        # Decisions are one simulated second apart, so each speed adds that many metres.
+        self.travelled[i] += local_vars["info"]["speed"]
+        self.steps[i] += 1
+        if local_vars["done"]:
+            self.distances.append(float(self.travelled[i]))
+            self.lengths.append(int(self.steps[i]))
+            self.travelled[i] = 0
+            self.steps[i] = 0
+
+    def results(self) -> dict:
+        lengths = np.array(self.lengths)
+        return {
+            "crash_rate": float(np.mean(lengths < config.MAX_EPISODE_STEPS)),
+            "mean_distance": float(np.mean(self.distances)),
+            "mean_speed": float(np.sum(self.distances) / np.sum(lengths)),
+        }
+
+
 def score(model: DQN | PPO, episodes: int = config.EVAL_EPISODES) -> dict:
     env = make_envs()
-    distances = []
-    travelled = np.zeros(env.num_envs)
-
-    def track_distance(local_vars: dict, _globals: dict) -> None:
-        # Decisions are one simulated second apart, so each speed adds that many metres.
-        i = local_vars["i"]
-        travelled[i] += local_vars["info"]["speed"]
-        if local_vars["done"]:
-            distances.append(float(travelled[i]))
-            travelled[i] = 0
-
+    stats = DrivingStats(env.num_envs)
     rewards, lengths = evaluate_policy(
         model,
         env,
         n_eval_episodes=episodes,
         deterministic=True,
         return_episode_rewards=True,
-        callback=track_distance,
+        callback=stats.update,
     )
     env.close()
     return {
         "mean_reward": float(np.mean(rewards)),
         "std_reward": float(np.std(rewards)),
         "mean_steps": float(np.mean(lengths)),
-        "crash_rate": float(np.mean(np.array(lengths) < config.MAX_EPISODE_STEPS)),
-        "mean_distance": float(np.mean(distances)),
-        "mean_speed": float(np.sum(distances) / np.sum(lengths)),
+        **stats.results(),
     }
 
 

@@ -44,6 +44,9 @@ python record_video.py --watch   # watch the newest run live in a window
 tensorboard --logdir runs   # watch training
 ```
 
+Runs also log `eval/crash_rate`, `eval/mean_speed` and `eval/mean_distance`, which
+compare across rewards, unlike `eval/mean_reward`.
+
 ## Experiments
 
 Every run tests one idea. `train.py` requires a name, hypothesis and change,

@@ -7,10 +7,11 @@ Usage:
     python record_video.py --watch          # live window, no video saved
 
 Videos land in `<run folder>/videos/episode-01.mp4`, `episode-02.mp4`, ... with a
-caption of the latest decision: its action and reward, and the running total.
-Below the road is a panel of what the model saw for the decision being carried
-out. For numbers, that's the exact values it was given, what they mean, and a map
-drawn only from them. For images, it's the frames themselves.
+caption of the decision being carried out: its action and the running total, plus
+its reward on the frame where it finishes. Below the road is a panel of what the
+model saw for that same decision. For numbers, that's the exact values it was
+given, what they mean, and a map drawn only from them. For images, it's the frames
+themselves.
 """
 
 import argparse
@@ -184,13 +185,15 @@ def _observation_panel(env, obs: np.ndarray, action: int, step: int) -> np.ndarr
     return np.asarray(panel)
 
 
-def _caption(env, action: int, step: int, reward: float, total: float, info: dict) -> str:
+def _caption(
+    env, action: int, step: int, total: float, reward: float | None = None, crashed: bool = False
+) -> str:
+    """Describe a decision. Its reward and crash are only known once it finishes."""
     name = env.unwrapped.action_type.actions[action]
-    crashed = "  CRASHED" if info["crashed"] else ""
-    return (
-        f"step {step}/{config.MAX_EPISODE_STEPS}  {info['speed']:.0f} m/s  {name}  "
-        f"reward {reward:+.2f}  total {total:.2f}{crashed}"
-    )
+    speed = env.unwrapped.vehicle.speed
+    outcome = "" if reward is None else f"reward {reward:+.2f}  "
+    ending = "  CRASHED" if crashed else ""
+    return f"step {step}/{config.MAX_EPISODE_STEPS}  {speed:.0f} m/s  {name}  {outcome}total {total:.2f}{ending}"
 
 
 def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[float, int, bool]:
@@ -204,14 +207,14 @@ def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[f
         action, _ = model.predict(obs, deterministic=True)
         if collector:
             collector.panel = _observation_panel(env, obs, int(action), steps + 1)
+            collector.caption = _caption(env, int(action), steps + 1, total_reward)
             if steps == 0:
-                collector.caption = "Start"
                 collector._capture_frame()
         obs, reward, terminated, truncated, info = env.step(int(action))
         total_reward += reward
         steps += 1
         if collector:
-            collector.caption = _caption(env, int(action), steps, reward, total_reward, info)
+            collector.caption = _caption(env, int(action), steps, total_reward, reward, info["crashed"])
             collector._capture_frame()
     return total_reward, steps, info["crashed"]
 

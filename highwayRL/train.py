@@ -5,9 +5,10 @@ Every run says what it tests, with all three of these:
 
 Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
 `--learning-rate 1e-4` to override config.py, `--default-reward` to train on
-highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` to set
-the crash penalty on top of either. `--seed 1` sets the run's random seed, so
-compare settings over several seeds, since one run can be luck.
+highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` or
+`--high-speed-reward 2` to set the crash penalty or full-speed reward on top of
+either. `--seed 1` sets the run's random seed, so compare settings over several
+seeds, since one run can be luck.
 
 To continue from a saved model, in a new run folder:
     python train.py --resume runs/<run>/model.zip --timesteps 60000 --name ...
@@ -34,9 +35,28 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.logger import configure
 
-from evaluate import describe, load_best, make_envs, run_algo, score
+from evaluate import DrivingStats, describe, load_best, make_envs, run_algo, score
 
 MODELS = {"dqn": DQN, "ppo": PPO}
+
+
+class DrivingEvalCallback(EvalCallback):
+    """Also logs crash rate, speed and distance, which compare across rewards."""
+
+    def _log_success_callback(self, locals_: dict, globals_: dict) -> None:
+        super()._log_success_callback(locals_, globals_)
+        self.stats.update(locals_)
+
+    def _on_step(self) -> bool:
+        evaluating = self.eval_freq > 0 and self.n_calls % self.eval_freq == 0
+        if evaluating:
+            self.stats = DrivingStats(self.eval_env.num_envs)
+        keep_going = super()._on_step()
+        if evaluating:
+            for name, value in self.stats.results().items():
+                self.logger.record(f"eval/{name}", value)
+            self.logger.dump(self.num_timesteps)
+        return keep_going
 
 
 def _write_run_log(
@@ -118,7 +138,7 @@ def train(
             save_path=str(run_dir / "checkpoints"),
             name_prefix=algo,
         ),
-        EvalCallback(
+        DrivingEvalCallback(
             eval_env,
             n_eval_episodes=config.TRAIN_EVAL_EPISODES,
             eval_freq=max(settings["eval_steps"] // config.N_ENVS, 1),
@@ -164,6 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--learning-rate", type=float, help="Defaults to the algorithm's value in config.py.")
     parser.add_argument("--default-reward", action="store_true", help="Ignore ENV_CONFIG for this run.")
     parser.add_argument("--collision-reward", type=float, help="Crash reward, like -2. Works with --default-reward.")
+    parser.add_argument("--high-speed-reward", type=float, help="Full-speed reward, like 2. Works with --default-reward.")
     parser.add_argument("--seed", type=int, help="Repeat a setting with different seeds to see how much is luck.")
     parser.add_argument("--resume", type=Path, help="A saved .zip to continue from. Sets the algorithm too.")
     parser.add_argument("--name", required=True, help="Short label for the folder, like penalty10.")
@@ -174,6 +195,8 @@ if __name__ == "__main__":
         config.ENV_CONFIG = {}
     if args.collision_reward is not None:
         config.ENV_CONFIG = {**config.ENV_CONFIG, "collision_reward": args.collision_reward}
+    if args.high_speed_reward is not None:
+        config.ENV_CONFIG = {**config.ENV_CONFIG, "high_speed_reward": args.high_speed_reward}
     algo = args.algo
     if args.resume:
         if not args.resume.is_file():
