@@ -48,6 +48,7 @@ is one training run, with no repeat seeds.
 | `20261104_180445_dqn_40k-slow-settings` | Normalized, -1 crash | 765 m | 40% | 24.0 m/s | 25.68 |
 | `ppo_lr3e-4_chain/20261105_121448_ppo_65k-lr3e-4-resumed` | No normalizing, -5 crash | 752 m | 30% | 22.3 m/s | 4.35 |
 | `20261105_143119_dqn_20k-norm1-seed1` | Normalized, -1 crash | 739 m | 30% | 22.6 m/s | 25.40 |
+| `20261106_124654_dqn_40k-normalized-speed2-right05` | Normalized, -2 crash, 2 full speed, 0.5 right lane | 709 m | 78% | 29.4 m/s | 22.05 |
 | `20261105_151550_dqn_20k-norm2-seed1` | Normalized, -2 crash | 678 m | 43% | 22.2 m/s | 25.82 |
 | `20261104_161212_dqn_smoke-test` | Normalized, -1 crash | 288 m | 100% | 28.5 m/s | 8.73 |
 
@@ -311,3 +312,10 @@ before training.
 - **Change:** 40,000 more steps on the 40k run's model.zip with its saved replay buffer, same reward and +/-100 m distance scale (resumed from runs/normalized_speed2_xrange100_chain/20261106_112536_dqn_40k-normalized-speed2-xrange100/model.zip)
 - **Result:** mean_reward=31.75 +/- 11.43, mean_steps=32.7/40, crash_rate=38%, mean_speed=29.8m/s, mean_distance=972m (200 episodes)
 - **Conclusion:** Supported, but not as a clear win: crashes fell from 68% to 38% and distance rose from 780 to 972 m, against 42% and 947 m for the 200 m run at 80k, which is within scoring noise. The Q-value gain had also mostly gone: with a car 5-20 m behind, bias was -0.49 and mean error 1.38 here against -0.69 and 1.32 on the 200 m run. So the narrower range seems to have sped up learning those values at 40k rather than ended up somewhere better. One run each.
+
+### 20261106_124654_dqn_40k-normalized-speed2-right05
+
+- **Hypothesis:** Raising right_lane_reward to 0.5 restores the 25% lane-to-speed ratio of no normalizing, so it weaves less and crashes below the 40k normalized speed2 run's 70% while holding about 29 m/s
+- **Change:** right_lane_reward 0.1 to 0.5, on normalized -2 crash with high_speed_reward 2, 40k steps from scratch
+- **Result:** mean_reward=22.05 +/- 11.19, mean_steps=24.1/40, crash_rate=78%, mean_speed=29.4m/s, mean_distance=709m (200 episodes)
+- **Conclusion:** Wrong: it moved right but didn't crash less. Over 40 matching episodes against the 40k run with 0.1, time in the right two lanes rose from 36% to 61%, but lane changes went from 44 to 49 per 100 steps, so it didn't weave less. Crashes were 78% against 70%, which is within scoring noise, at the same speed. So lane position doesn't look like the reason normalizing crashes more than no normalizing. These rewards also match no normalizing, -2 crash, under one scale and shift (x 1.11 + 2.22), so apart from the 40-step limit both have the same best driving, and a different goal can't explain the gap. Untested guess: normalized crash targets sit near the network's starting values, so crashes only look bad once safe Q-values climb. One run, on seed 1, at 40k rather than the 120k where the gap was measured.

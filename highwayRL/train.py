@@ -7,7 +7,8 @@ Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
 `--learning-rate 1e-4` to override config.py, `--default-reward` to train on
 highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` or
 `--high-speed-reward 2` to set the crash penalty or full-speed reward on top of
-either. `--x-range 100` scales car distances by 100 m instead of 200 m, and can't
+either, with `--right-lane-reward 0.5` doing the same for the rightmost lane's
+reward. `--x-range 100` scales car distances by 100 m instead of 200 m, and can't
 be combined with resuming a run that used another range. `--seed 1` sets the
 run's random seed, so compare settings over several seeds, since one run can be
 luck.
@@ -187,6 +188,7 @@ if __name__ == "__main__":
     parser.add_argument("--default-reward", action="store_true", help="Ignore ENV_CONFIG for this run.")
     parser.add_argument("--collision-reward", type=float, help="Crash reward, like -2. Works with --default-reward.")
     parser.add_argument("--high-speed-reward", type=float, help="Full-speed reward, like 2. Works with --default-reward.")
+    parser.add_argument("--right-lane-reward", type=float, help="Rightmost lane reward, like 0.5. Works with --default-reward.")
     parser.add_argument("--x-range", type=float, help="Metres that car distances are scaled by. Defaults to 200.")
     parser.add_argument("--seed", type=int, help="Repeat a setting with different seeds to see how much is luck.")
     parser.add_argument("--resume", type=Path, help="A saved .zip to continue from. Sets the algorithm too.")
@@ -200,6 +202,8 @@ if __name__ == "__main__":
         config.ENV_CONFIG = {**config.ENV_CONFIG, "collision_reward": args.collision_reward}
     if args.high_speed_reward is not None:
         config.ENV_CONFIG = {**config.ENV_CONFIG, "high_speed_reward": args.high_speed_reward}
+    if args.right_lane_reward is not None:
+        config.ENV_CONFIG = {**config.ENV_CONFIG, "right_lane_reward": args.right_lane_reward}
     if args.x_range is not None:
         observation = config.observation_with_x_range(args.x_range)
         config.ENV_CONFIG = {**config.ENV_CONFIG, "observation": observation}
