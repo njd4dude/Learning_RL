@@ -4,7 +4,7 @@ Every run says what it tests, with all three of these:
     python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
 
 Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
-`--learning-rate 1e-4` to override config.py, `--default-reward` to train on
+`--learning-rate 1e-4` or `--gamma 0.9` to override config.py, `--default-reward` to train on
 highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` or
 `--high-speed-reward 2` to set the crash penalty or full-speed reward on top of
 either, with `--right-lane-reward 0.5` doing the same for the rightmost lane's
@@ -86,7 +86,11 @@ def _write_run_log(
         "",
         "hyperparameters:",
     ]
-    hyperparameters = {**config.ALGORITHMS[algo]["kwargs"], "learning_rate": model.learning_rate}
+    hyperparameters = {
+        **config.ALGORITHMS[algo]["kwargs"],
+        "learning_rate": model.learning_rate,
+        "gamma": model.gamma,
+    }
     lines += [f"  {key}: {value}" for key, value in hyperparameters.items()]
     (run_dir / "run.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -112,6 +116,7 @@ def train(
     learning_rate: float | None = None,
     resume: Path | None = None,
     seed: int | None = None,
+    gamma: float | None = None,
 ) -> Path:
     settings = config.ALGORITHMS[algo]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -122,6 +127,8 @@ def train(
     env = make_envs(seed)
     eval_env = make_envs(None if seed is None else seed + 1000)
     overrides = {"learning_rate": learning_rate} if learning_rate else {}
+    if gamma is not None:
+        overrides["gamma"] = gamma
     if resume:
         model = MODELS[algo].load(resume, env=env, device="cpu", custom_objects=overrides)
         model.set_random_seed(seed)
@@ -185,6 +192,7 @@ if __name__ == "__main__":
     parser.add_argument("--algo", choices=config.ALGORITHMS, default="dqn")
     parser.add_argument("--timesteps", type=int, help="Defaults to the algorithm's value in config.py.")
     parser.add_argument("--learning-rate", type=float, help="Defaults to the algorithm's value in config.py.")
+    parser.add_argument("--gamma", type=float, help="Defaults to the algorithm's value in config.py.")
     parser.add_argument("--default-reward", action="store_true", help="Ignore ENV_CONFIG for this run.")
     parser.add_argument("--collision-reward", type=float, help="Crash reward, like -2. Works with --default-reward.")
     parser.add_argument("--high-speed-reward", type=float, help="Full-speed reward, like 2. Works with --default-reward.")
@@ -213,4 +221,4 @@ if __name__ == "__main__":
             parser.error(f"--resume file not found: {args.resume}")
         source = args.resume.parent
         algo = run_algo(source.parent if source.name == "checkpoints" else source)
-    train(algo, args.timesteps, args.name, args.hypothesis, args.change, args.learning_rate, args.resume, args.seed)
+    train(algo, args.timesteps, args.name, args.hypothesis, args.change, args.learning_rate, args.resume, args.seed, args.gamma)
