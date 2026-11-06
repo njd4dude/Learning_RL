@@ -64,6 +64,8 @@ runs/20261104_215246_dqn_penalty5/
 ```
 
 `runs/baselines/` holds the random-agent video and fixed-action scores.
+Folders ending in `_chain` hold a run and its `--resume` continuations, so
+`tensorboard --logdir runs/penalty2_chain` shows one line of training.
 
 ## Files
 

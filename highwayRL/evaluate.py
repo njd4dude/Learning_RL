@@ -40,7 +40,8 @@ def make_envs(seed: int | None = None):
 
 
 def latest_run() -> Path:
-    models = sorted(Path(config.RUNS_FOLDER).glob("*/model.zip"))
+    # Run folders start with a timestamp, and resumed runs sit in a chain folder.
+    models = sorted(Path(config.RUNS_FOLDER).glob("**/model.zip"), key=lambda path: path.parent.name)
     if not models:
         raise SystemExit(f"No trained models under {config.RUNS_FOLDER}/. Run train.py first.")
     return models[-1].parent

@@ -20,19 +20,19 @@ is one training run, with no repeat seeds.
 
 | Run | Trained with | Distance | Crash rate | Mean speed | Own reward |
 |---|---|---|---|---|---|
-| `20261105_170129_dqn_160k-penalty2-resumed` | No normalizing, -2 crash | 1057 m | 21% | 29.6 m/s | 15.84 |
-| `20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
-| `20261105_160009_dqn_80k-penalty2-resumed` | No normalizing, -2 crash | 992 m | 32% | 29.4 m/s | 14.62 |
-| `20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
+| `penalty2_chain/20261105_170129_dqn_160k-penalty2-resumed` | No normalizing, -2 crash | 1057 m | 21% | 29.6 m/s | 15.84 |
+| `penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
+| `penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed` | No normalizing, -2 crash | 992 m | 32% | 29.4 m/s | 14.62 |
+| `penalty2_chain/20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
 | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
 | `20261104_171828_dqn_40k` | Normalized, -1 crash | 864 m | 17% | 23.9 m/s | 29.59 |
-| `20261105_172705_dqn_80k-normalized-penalty2-resumed` | Normalized, -2 crash | 839 m | 27% | 24.3 m/s | 30.60 |
-| `20261105_135955_dqn_40k-normalized-penalty2` | Normalized, -2 crash | 836 m | 17% | 23.0 m/s | 31.37 |
+| `normalized_penalty2_chain/20261105_172705_dqn_80k-normalized-penalty2-resumed` | Normalized, -2 crash | 839 m | 27% | 24.3 m/s | 30.60 |
+| `normalized_penalty2_chain/20261105_135955_dqn_40k-normalized-penalty2` | Normalized, -2 crash | 836 m | 17% | 23.0 m/s | 31.37 |
 | `20261105_153008_dqn_20k-norm2-seed2` | Normalized, -2 crash | 832 m | 2% | 21.1 m/s | 32.78 |
 | `20261105_133450_dqn_40k-default-reward-repeat` | Normalized, -1 crash | 830 m | 49% | 27.1 m/s | 27.08 |
 | `20261104_190015_ppo_200k` | Normalized, -1 crash | 825 m | 22% | 24.1 m/s | 28.26 |
 | `20261104_161334_dqn_20k` | Normalized, -1 crash | 824 m | 20% | 23.2 m/s | 28.31 |
-| `20261105_113120_ppo_40k-lr3e-4` | No normalizing, -5 crash | 819 m | 8% | 21.4 m/s | 4.55 |
+| `ppo_lr3e-4_chain/20261105_113120_ppo_40k-lr3e-4` | No normalizing, -5 crash | 819 m | 8% | 21.4 m/s | 4.55 |
 | `20261105_144614_dqn_20k-norm1-seed2` | Normalized, -1 crash | 818 m | 6% | 21.4 m/s | 28.22 |
 | `20261105_154440_dqn_20k-norm2-seed3` | Normalized, -2 crash | 800 m | 2% | 20.2 m/s | 32.78 |
 | `20261105_102757_ppo_20k-lr1e-4` | No normalizing, -5 crash | 798 m | 2% | 20.1 m/s | 2.26 |
@@ -41,7 +41,7 @@ is one training run, with no repeat seeds.
 | `20261105_111332_ppo_20k-lr3e-4` | No normalizing, -5 crash | 786 m | 8% | 20.8 m/s | 2.71 |
 | `20261105_150125_dqn_20k-norm1-seed3` | Normalized, -1 crash | 770 m | 18% | 21.9 m/s | 26.65 |
 | `20261104_180445_dqn_40k-slow-settings` | Normalized, -1 crash | 765 m | 40% | 24.0 m/s | 25.68 |
-| `20261105_121448_ppo_65k-lr3e-4-resumed` | No normalizing, -5 crash | 752 m | 30% | 22.3 m/s | 4.35 |
+| `ppo_lr3e-4_chain/20261105_121448_ppo_65k-lr3e-4-resumed` | No normalizing, -5 crash | 752 m | 30% | 22.3 m/s | 4.35 |
 | `20261105_143119_dqn_20k-norm1-seed1` | Normalized, -1 crash | 739 m | 30% | 22.6 m/s | 25.40 |
 | `20261105_151550_dqn_20k-norm2-seed1` | Normalized, -2 crash | 678 m | 43% | 22.2 m/s | 25.82 |
 | `20261104_161212_dqn_smoke-test` | Normalized, -1 crash | 288 m | 100% | 28.5 m/s | 8.73 |
@@ -119,7 +119,7 @@ before training.
   on reward, with crashes level, but its model is the best of 16 evals, while
   these checkpoints weren't selected.
 
-### 20261104_210951_dqn_penalty2
+### penalty2_chain/20261104_210951_dqn_penalty2
 
 - **Hypothesis:** Removing normalizing stops survival alone from scoring well, so
   the agent learns to drive faster.
@@ -170,7 +170,7 @@ before training.
   slow driving, at about 0.09 reward per step before crash penalties. One run each,
   so repeat seeds would confirm this.
 
-### 20261105_113120_ppo_40k-lr3e-4
+### ppo_lr3e-4_chain/20261105_113120_ppo_40k-lr3e-4
 
 - **Hypothesis:** Doubling steps to 40k lifts PPO past the 20k run's 3.16 reward, and toward DQN penalty5's 10.85
 - **Change:** timesteps 20,000 to 40,000, compared with 20261105_111332_ppo_20k-lr3e-4
@@ -180,7 +180,7 @@ before training.
   against 42%) but slower, at about 0.13 reward per step before crash penalties against
   0.40. Mid-training evals rose to 4.73, then gave 4.18 at the end. One run each.
 
-### 20261105_121448_ppo_65k-lr3e-4-resumed
+### ppo_lr3e-4_chain/20261105_121448_ppo_65k-lr3e-4-resumed
 
 - **Hypothesis:** More steps let PPO catch DQN penalty5's speed (10.85 reward) while staying safer than its 42% crashes
 - **Change:** Resumed the 40k run's best model (about 30k steps) on the same learning rate and reward. Planned 100k, stopped by hand at about 65k, so it has no `model.zip`.
@@ -195,7 +195,7 @@ before training.
 - **Result:** mean_reward=27.08 +/- 10.97, mean_steps=30.6/40, crash_rate=49%, mean_speed=27.1m/s, mean_distance=830m (200 episodes)
 - **Conclusion:** Wrong: it didn't match `dqn_40k`. With identical settings it crashed 49% against 17%, and drove 27.1 m/s against 23.9. That's far beyond scoring noise, so training luck moves single DQN runs a lot. It looks like `penalty2` and `penalty5`, which fits the math that this reward trains like about -6. So the new reward may not be what made those runs faster. Compare settings over several seeds from now on.
 
-### 20261105_135955_dqn_40k-normalized-penalty2
+### normalized_penalty2_chain/20261105_135955_dqn_40k-normalized-penalty2
 
 - **Hypothesis:** Normalizing with a -2 crash penalty drives more cautiously than the default reward, with fewer crashes and lower speed
 - **Change:** collision_reward -1 to -2, keeping normalizing
@@ -244,30 +244,30 @@ before training.
 - **Result:** mean_reward=32.78 +/- 2.78, mean_steps=39.6/40, crash_rate=2%, mean_speed=20.2m/s, mean_distance=800m (200 episodes)
 - **Conclusion:** See the seed comparison at the top.
 
-### 20261105_160009_dqn_80k-penalty2-resumed
+### penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed
 
 - **Hypothesis:** penalty2 was still improving at 40k, so 40k more steps lift it past its 921 m without more crashes
-- **Change:** 40,000 more steps on penalty2's model.zip, same no normalizing, -2 crash reward, empty replay buffer (resumed from runs/20261104_210951_dqn_penalty2/model.zip)
+- **Change:** 40,000 more steps on penalty2's model.zip, same no normalizing, -2 crash reward, empty replay buffer (resumed from runs/penalty2_chain/20261104_210951_dqn_penalty2/model.zip)
 - **Result:** mean_reward=14.62 +/- 6.06, mean_steps=33.8/40, crash_rate=32%, mean_speed=29.4m/s, mean_distance=992m (200 episodes)
 - **Conclusion:** Supported: 992 m against 921 m at the same speed, with crashes down from 46% to 32%. It kept high speed and got safer, the first run to do both. There was no dip from the empty replay buffer. One run, so it needs repeating, though the training curve kept rising.
 
-### 20261105_163251_dqn_120k-penalty2-resumed
+### penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed
 
 - **Hypothesis:** Another 40k steps keeps cutting crashes below 32% while holding about 29 m/s
-- **Change:** 40,000 more steps on the 80k run's model.zip with its saved replay buffer, same reward (resumed from runs/20261105_160009_dqn_80k-penalty2-resumed/model.zip)
+- **Change:** 40,000 more steps on the 80k run's model.zip with its saved replay buffer, same reward (resumed from runs/penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed/model.zip)
 - **Result:** mean_reward=15.59 +/- 5.50, mean_steps=35.8/40, crash_rate=22%, mean_speed=29.3m/s, mean_distance=1049m (200 episodes)
 - **Conclusion:** Supported: crashes fell again, from 32% to 22%, at the same speed, and distance rose to 1,049 m. Crashes have gone 46%, 32%, 22% as steps went 40k, 80k, 120k. The saved replay buffer loaded with 15,000 steps. One run, so it needs repeating on other seeds.
 
-### 20261105_170129_dqn_160k-penalty2-resumed
+### penalty2_chain/20261105_170129_dqn_160k-penalty2-resumed
 
 - **Hypothesis:** Another 40k steps cuts crashes below 22% while holding about 29 m/s
-- **Change:** 40,000 more steps on the 120k run's model.zip with its saved replay buffer, same reward (resumed from runs/20261105_163251_dqn_120k-penalty2-resumed/model.zip)
+- **Change:** 40,000 more steps on the 120k run's model.zip with its saved replay buffer, same reward (resumed from runs/penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed/model.zip)
 - **Result:** mean_reward=15.84 +/- 5.42, mean_steps=35.7/40, crash_rate=21%, mean_speed=29.6m/s, mean_distance=1057m (200 episodes)
 - **Conclusion:** Not shown: 21% against 22% is within noise, and distance barely moved. `ep_rew_mean` stayed about 10 to 14 and evals about 12 to 17, with no trend, so this line of training looks to have plateaued around 120k. Going further on these settings probably won't cut crashes much.
 
-### 20261105_172705_dqn_80k-normalized-penalty2-resumed
+### normalized_penalty2_chain/20261105_172705_dqn_80k-normalized-penalty2-resumed
 
 - **Hypothesis:** With 40k more steps, normalized -2 gets faster and safer, as penalty2 did with normalizing off
-- **Change:** 40,000 more steps on the normalized -2 run's model.zip, same reward, empty replay buffer (resumed from runs/20261105_135955_dqn_40k-normalized-penalty2/model.zip)
+- **Change:** 40,000 more steps on the normalized -2 run's model.zip, same reward, empty replay buffer (resumed from runs/normalized_penalty2_chain/20261105_135955_dqn_40k-normalized-penalty2/model.zip)
 - **Result:** mean_reward=30.60 +/- 9.19, mean_steps=34.6/40, crash_rate=27%, mean_speed=24.3m/s, mean_distance=839m (200 episodes)
 - **Conclusion:** Wrong: distance stayed about the same at 839 m, and crashes rose from 17% to 27%, near the edge of noise. `ep_rew_mean` stayed flat around 24 to 28, so more steps didn't help as they did with normalizing off. At 80k, normalizing off is 153 m farther and 5 m/s faster, at a similar crash rate (32%). One run each.
