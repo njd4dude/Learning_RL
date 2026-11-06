@@ -3,10 +3,11 @@
 Usage:
     python evaluate.py                  # newest run
     python evaluate.py runs/<run>       # a specific run folder
-    python evaluate.py --own-reward     # on the reward the run trained with
+    python evaluate.py --config-reward  # on config.py's reward, not the run's own
 
-Mean speed, distance and crash rate don't depend on the reward, so they compare
-across all runs. Each score is added to `eval.txt` in the run folder.
+Runs are scored on the reward they trained with by default. Mean speed, distance
+and crash rate don't depend on the reward, so they compare across all runs. Each
+score is added to `eval.txt` in the run folder.
 """
 
 import argparse
@@ -27,11 +28,12 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 gym.register_envs(highway_env)
 
 
-def make_envs():
+def make_envs(seed: int | None = None):
     """Parallel copies of the game, since one alone is very slow."""
     return make_vec_env(
         config.ENV_ID,
         n_envs=config.N_ENVS,
+        seed=seed,
         vec_env_cls=SubprocVecEnv,
         env_kwargs=dict(config=config.ENV_CONFIG),
     )
@@ -64,7 +66,10 @@ def load_best(run_dir: Path) -> DQN | PPO:
 
 def trained_reward(run_dir: Path) -> dict:
     """Read a run's reward settings. Runs from before they were logged used the default."""
-    for line in (run_dir / "run.txt").read_text(encoding="utf-8").splitlines():
+    run_log = run_dir / "run.txt"
+    if not run_log.is_file():  # stopped before it finished
+        return config.ENV_CONFIG
+    for line in run_log.read_text(encoding="utf-8").splitlines():
         if line.startswith("env_config: "):
             return ast.literal_eval(line.removeprefix("env_config: "))
     return {}
@@ -115,11 +120,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dir", nargs="?", help="Run folder. Defaults to the newest.")
     parser.add_argument("--episodes", type=int, default=config.EVAL_EPISODES)
-    parser.add_argument("--own-reward", action="store_true", help="Use the reward the run trained with.")
+    parser.add_argument("--config-reward", action="store_true", help="Use config.py's reward, not the run's own.")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir) if args.run_dir else latest_run()
-    if args.own_reward:
+    if not args.config_reward:
         config.ENV_CONFIG = trained_reward(run_dir)
     print(f"Scoring {run_dir} over {args.episodes} episodes...")
     result = describe(score(load_best(run_dir), args.episodes))

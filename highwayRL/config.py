@@ -14,7 +14,7 @@ ENV_ID = "highway-v0"
 # 0.7 a step just for staying alive, so always braking scored as well as any
 # trained model. Without it, surviving earns little and only speed pays, so
 # crashes cost more to stop the agent getting reckless. Rewards from runs under
-# different settings don't compare, so evaluate.py scores everything with these.
+# different settings don't compare, so evaluate.py uses each run's own by default.
 ENV_CONFIG = dict(
     normalize_reward=False,
     collision_reward=-5,
