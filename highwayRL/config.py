@@ -20,6 +20,19 @@ ENV_CONFIG = dict(
     collision_reward=-5,
 )
 
+
+def observation_with_x_range(metres: float) -> dict:
+    """Scale car distances by `metres` rather than the default 200, so close gaps read larger.
+
+    Cars farther than this read as exactly that far. highway-env replaces its whole
+    default `features_range`, so the other three repeat their values for 4 lanes.
+    """
+    return dict(
+        type="Kinematics",
+        features_range=dict(x=[-metres, metres], y=[-16, 16], vx=[-80, 80], vy=[-80, 80]),
+    )
+
+
 # --- DQN (train.py) ---
 # highway-env's documented DQN settings. A slower variant (learning_rate 1e-4,
 # buffer_size 50,000, target_update_interval 1,000) crashed far more: 51%
