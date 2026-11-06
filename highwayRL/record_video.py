@@ -7,11 +7,11 @@ Usage:
     python record_video.py --watch          # live window, no video saved
 
 Videos land in `<run folder>/videos/episode-01.mp4`, `episode-02.mp4`, ... with a
-caption of the decision being carried out: its action and the running total, plus
-its reward on the frame where it finishes. Below the road is a panel of what the
-model saw for that same decision. For numbers, that's the exact values it was
-given, what they mean, and a map drawn only from them. For images, it's the frames
-themselves.
+caption of the decision being carried out: its action, the reward from the decision
+before it, and the running total. The last frame holds so the ending can be read.
+Below the road is a panel of what the model saw for that same decision. For numbers,
+that's the exact values it was given, what they mean, and a map drawn only from
+them. For images, it's the frames themselves.
 """
 
 import argparse
@@ -188,10 +188,10 @@ def _observation_panel(env, obs: np.ndarray, action: int, step: int) -> np.ndarr
 def _caption(
     env, action: int, step: int, total: float, reward: float | None = None, crashed: bool = False
 ) -> str:
-    """Describe a decision. Its reward and crash are only known once it finishes."""
+    """Describe a decision. `reward` is the latest finished one's, as this one's isn't known yet."""
     name = env.unwrapped.action_type.actions[action]
     speed = env.unwrapped.vehicle.speed
-    outcome = "" if reward is None else f"reward {reward:+.2f}  "
+    outcome = "" if reward is None else f"last reward {reward:+.2f}  "
     ending = "  CRASHED" if crashed else ""
     return f"step {step}/{config.MAX_EPISODE_STEPS}  {speed:.0f} m/s  {name}  {outcome}total {total:.2f}{ending}"
 
@@ -201,21 +201,25 @@ def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[f
     obs, _info = env.reset()
 
     total_reward = 0.0
+    last_reward = None
     steps = 0
     terminated = truncated = False
     while not (terminated or truncated):
         action, _ = model.predict(obs, deterministic=True)
         if collector:
             collector.panel = _observation_panel(env, obs, int(action), steps + 1)
-            collector.caption = _caption(env, int(action), steps + 1, total_reward)
+            collector.caption = _caption(env, int(action), steps + 1, total_reward, last_reward)
             if steps == 0:
                 collector._capture_frame()
         obs, reward, terminated, truncated, info = env.step(int(action))
         total_reward += reward
+        last_reward = reward
         steps += 1
         if collector:
             collector.caption = _caption(env, int(action), steps, total_reward, reward, info["crashed"])
             collector._capture_frame()
+    if collector:
+        collector.frames.extend(collector.frames[-1:] * config.VIDEO_END_HOLD_FRAMES)
     return total_reward, steps, info["crashed"]
 
 

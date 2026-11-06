@@ -91,3 +91,4 @@ ALGORITHMS = {
 # --- Video recording ---
 VIDEO_FPS = 15  # the simulator's 15 frames a second, so videos play in real time
 VIDEO_EPISODES = 3
+VIDEO_END_HOLD_FRAMES = 30  # 2 seconds on the last frame, to read how it ended
