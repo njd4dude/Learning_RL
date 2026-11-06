@@ -24,6 +24,7 @@ is one training run, with no repeat seeds.
 | `penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
 | `penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed` | No normalizing, -2 crash | 992 m | 32% | 29.4 m/s | 14.62 |
 | `normalized_speed2_chain/20261105_215327_dqn_120k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 972 m | 42% | 29.7 m/s | 31.83 |
+| `normalized_speed2_xrange100_chain/20261106_120112_dqn_80k-normalized-speed2-xrange100-resumed` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 972 m | 38% | 29.8 m/s | 31.75 |
 | `normalized_speed2_chain/20261105_200605_dqn_80k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 947 m | 42% | 29.6 m/s | 30.87 |
 | `penalty2_chain/20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
 | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
@@ -41,7 +42,7 @@ is one training run, with no repeat seeds.
 | **Always `SLOWER` (baseline, no model)** | Not trained | 795 m | 2% | 20.0 m/s | 27.85 normalized, -1; 1.96 no normalizing, -5 |
 | `20261105_105138_ppo_20k-lr1e-4-default-reward` | Normalized, -1 crash | 794 m | 1% | 20.0 m/s | 27.79 |
 | `20261105_111332_ppo_20k-lr3e-4` | No normalizing, -5 crash | 786 m | 8% | 20.8 m/s | 2.71 |
-| `20261106_112536_dqn_40k-normalized-speed2-xrange100` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 780 m | 68% | 28.7 m/s | 24.99 |
+| `normalized_speed2_xrange100_chain/20261106_112536_dqn_40k-normalized-speed2-xrange100` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 780 m | 68% | 28.7 m/s | 24.99 |
 | `normalized_speed2_chain/20261105_193556_dqn_40k-normalized-speed2` | Normalized, -2 crash, 2 full speed | 779 m | 70% | 29.5 m/s | 25.11 |
 | `20261105_150125_dqn_20k-norm1-seed3` | Normalized, -1 crash | 770 m | 18% | 21.9 m/s | 26.65 |
 | `20261104_180445_dqn_40k-slow-settings` | Normalized, -1 crash | 765 m | 40% | 24.0 m/s | 25.68 |
@@ -297,9 +298,16 @@ before training.
 - **Result:** mean_reward=31.83 +/- 11.12, mean_steps=32.7/40, crash_rate=42%, mean_speed=29.7m/s, mean_distance=972m (200 episodes)
 - **Conclusion:** Wrong: crashes stayed at 42%, and distance only rose from 947 to 972 m, within noise. Normalizing off dropped to 22% and 1049 m at 120k, so the gap widened from 10 points to 20 and is now larger than scoring noise. Speed matches normalizing off, but crash avoidance doesn't yet. One run each.
 
-### 20261106_112536_dqn_40k-normalized-speed2-xrange100
+### normalized_speed2_xrange100_chain/20261106_112536_dqn_40k-normalized-speed2-xrange100
 
 - **Hypothesis:** Scaling car distances by 100 m instead of 200 m makes close gaps easier to separate, so Q(LANE_RIGHT) with a car 5-20 m behind gets closer to its real return, and crashes stay below the 40k run's 70%
 - **Change:** x features_range +/-100 m instead of +/-200 m, on normalized -2 crash with high_speed_reward 2, 40k steps from scratch
 - **Result:** mean_reward=24.99 +/- 11.74, mean_steps=27.2/40, crash_rate=68%, mean_speed=28.7m/s, mean_distance=780m (200 episodes)
 - **Conclusion:** Half right: the Q-values improved but the driving didn't. With a car 5-20 m behind in the right lane and none just ahead there, Q(LANE_RIGHT) averaged 3.58 against a real return of 3.66 (256 states, bias -0.07, mean error 0.92), where the 200 m run gave 1.37 against 3.81 (269 states, bias -2.44, mean error 2.47). Negative Q-values there fell from 21% to 2%, though true Q-values can't go below 0. Crashes and distance matched the 200 m run at 68% and 780 m against 70% and 779 m, so fixing this estimate didn't fix crashes. One run each.
+
+### normalized_speed2_xrange100_chain/20261106_120112_dqn_80k-normalized-speed2-xrange100-resumed
+
+- **Hypothesis:** With 40k more steps crashes fall from 68% and at least match the 200 m run's 42% at 80k, now that Q-values with a car close behind are accurate
+- **Change:** 40,000 more steps on the 40k run's model.zip with its saved replay buffer, same reward and +/-100 m distance scale (resumed from runs/normalized_speed2_xrange100_chain/20261106_112536_dqn_40k-normalized-speed2-xrange100/model.zip)
+- **Result:** mean_reward=31.75 +/- 11.43, mean_steps=32.7/40, crash_rate=38%, mean_speed=29.8m/s, mean_distance=972m (200 episodes)
+- **Conclusion:** Supported, but not as a clear win: crashes fell from 68% to 38% and distance rose from 780 to 972 m, against 42% and 947 m for the 200 m run at 80k, which is within scoring noise. The Q-value gain had also mostly gone: with a car 5-20 m behind, bias was -0.49 and mean error 1.38 here against -0.69 and 1.32 on the 200 m run. So the narrower range seems to have sped up learning those values at 40k rather than ended up somewhere better. One run each.
