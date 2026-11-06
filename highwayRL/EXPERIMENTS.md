@@ -21,14 +21,17 @@ is one training run, with no repeat seeds.
 | Run | Trained with | Distance | Crash rate | Mean speed | Own reward |
 |---|---|---|---|---|---|
 | `penalty2_chain/20261105_170129_dqn_160k-penalty2-resumed` | No normalizing, -2 crash | 1057 m | 21% | 29.6 m/s | 15.84 |
+| `20261106_130918_dqn_120k-default-resumed` | Normalized, -1 crash | 1053 m | 23% | 29.5 m/s | 33.95 |
 | `penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
 | `penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed` | No normalizing, -2 crash | 992 m | 32% | 29.4 m/s | 14.62 |
+| `20261106_142353_dqn_120k-default-seed2` | Normalized, -1 crash | 977 m | 34% | 29.6 m/s | 31.76 |
 | `normalized_speed2_chain/20261105_215327_dqn_120k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 972 m | 42% | 29.7 m/s | 31.83 |
 | `normalized_speed2_xrange100_chain/20261106_120112_dqn_80k-normalized-speed2-xrange100-resumed` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 972 m | 38% | 29.8 m/s | 31.75 |
 | `normalized_speed2_chain/20261105_200605_dqn_80k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 947 m | 42% | 29.6 m/s | 30.87 |
 | `penalty2_chain/20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
 | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
 | `20261104_171828_dqn_40k` | Normalized, -1 crash | 864 m | 17% | 23.9 m/s | 29.59 |
+| `20261106_135856_dqn_40k-normalized-speed2-crash5` | Normalized, -5 crash, 2 full speed | 853 m | 18% | 23.4 m/s | 29.36 |
 | `normalized_penalty2_chain/20261105_172705_dqn_80k-normalized-penalty2-resumed` | Normalized, -2 crash | 839 m | 27% | 24.3 m/s | 30.60 |
 | `normalized_penalty2_chain/20261105_135955_dqn_40k-normalized-penalty2` | Normalized, -2 crash | 836 m | 17% | 23.0 m/s | 31.37 |
 | `20261105_153008_dqn_20k-norm2-seed2` | Normalized, -2 crash | 832 m | 2% | 21.1 m/s | 32.78 |
@@ -319,3 +322,24 @@ before training.
 - **Change:** right_lane_reward 0.1 to 0.5, on normalized -2 crash with high_speed_reward 2, 40k steps from scratch
 - **Result:** mean_reward=22.05 +/- 11.19, mean_steps=24.1/40, crash_rate=78%, mean_speed=29.4m/s, mean_distance=709m (200 episodes)
 - **Conclusion:** Wrong: it moved right but didn't crash less. Over 40 matching episodes against the 40k run with 0.1, time in the right two lanes rose from 36% to 61%, but lane changes went from 44 to 49 per 100 steps, so it didn't weave less. Crashes were 78% against 70%, which is within scoring noise, at the same speed. So lane position doesn't look like the reason normalizing crashes more than no normalizing. These rewards also match no normalizing, -2 crash, under one scale and shift (x 1.11 + 2.22), so apart from the 40-step limit both have the same best driving, and a different goal can't explain the gap. Untested guess: normalized crash targets sit near the network's starting values, so crashes only look bad once safe Q-values climb. One run, on seed 1, at 40k rather than the 120k where the gap was measured.
+
+### 20261106_130918_dqn_120k-default-resumed
+
+- **Hypothesis:** On the default reward, 80k more steps cut crashes below dqn_40k's 17% and raise speed above 23.9 m/s, as extra steps did with normalizing off
+- **Change:** 80,000 more steps on dqn_40k's model.zip, same default reward and DQN settings, empty replay buffer because that run saved none (resumed from runs/20261104_171828_dqn_40k/model.zip)
+- **Result:** mean_reward=33.95 +/- 9.44, mean_steps=35.7/40, crash_rate=23%, mean_speed=29.5m/s, mean_distance=1053m (200 episodes)
+- **Conclusion:** Half right, and a surprise: speed rose from 23.9 to 29.5 m/s, but crashes went up from 17% to 23%, which is within noise of it. Distance rose from 864 to 1,053 m, level with the best no-normalizing runs (1,049 m and 22% at 120k) and well ahead of normalized speed2 at 120k (972 m, 42%). So the default reward reaches full speed on its own with more steps, and the alive bonus doesn't keep it slow as the 40k runs suggested. One run, and this model's 40k start was the lucky 17% one.
+
+### 20261106_135856_dqn_40k-normalized-speed2-crash5
+
+- **Hypothesis:** A 2.5:1 crash to speed ratio cuts crashes well below the 40k normalized speed2 run's 70%, though the smaller speed gain probably lowers speed from 29.5 m/s
+- **Change:** collision_reward -2 to -5, on normalized with high_speed_reward 2, 40k steps from scratch
+- **Result:** mean_reward=29.36 +/- 6.87, mean_steps=36.4/40, crash_rate=18%, mean_speed=23.4m/s, mean_distance=853m (200 episodes)
+- **Conclusion:** Right on both counts: crashes fell from 70% to 18%, and speed fell from 29.5 to 23.4 m/s. Distance rose from 779 to 853 m. It drove almost exactly like `dqn_40k` (864 m, 17%, 23.9 m/s), whose gain from full speed is similar at 0.33 against 0.29 a step. So at 40k this reward behaves like the default one, and the real test is whether it also reaches full speed by 120k. One run.
+
+### 20261106_142353_dqn_120k-default-seed2
+
+- **Hypothesis:** A new seed on the default reward also reaches about 1,050 m and 23% crashes at 120k, so dqn_120k-default-resumed wasn't luck
+- **Change:** Repeats the 120k default reward run on seed 2, in one go from scratch rather than 40k then an 80k resume with an empty replay buffer
+- **Result:** mean_reward=31.76 +/- 11.63, mean_steps=33.0/40, crash_rate=34%, mean_speed=29.6m/s, mean_distance=977m (200 episodes)
+- **Conclusion:** Partly: it reached the same 29.6 m/s, so the default reward does get to full speed by 120k, but crashes were 34% against 23% and distance 977 m against 1,053 m, about 1.5 to 2 times scoring noise. So `dqn_120k-default-resumed` was partly luck, and it also differs in training: it was 40k then an 80k resume with an empty buffer, against one run from scratch here. The gap to normalized speed2 at 120k (972 m, 42%) is now within noise, so the default reward isn't clearly safer at this length.
