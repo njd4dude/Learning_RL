@@ -4,7 +4,8 @@ Every run says what it tests, with all three of these:
     python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
 
 Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
-`--learning-rate 1e-4` or `--gamma 0.9` to override config.py, `--default-reward` to train on
+`--learning-rate 1e-4` or `--gamma 0.9` to override config.py, `--decisions-per-second 2`
+to choose more often than once a second, `--default-reward` to train on
 highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` or
 `--high-speed-reward 2` to set the crash penalty or full-speed reward on top of
 either, with `--right-lane-reward 0.5` doing the same for the rightmost lane's
@@ -151,7 +152,7 @@ def train(
         DrivingEvalCallback(
             eval_env,
             n_eval_episodes=config.TRAIN_EVAL_EPISODES,
-            eval_freq=max(settings["eval_steps"] // config.N_ENVS, 1),
+            eval_freq=max(settings["eval_steps"] * config.decisions_per_second() // config.N_ENVS, 1),
             deterministic=True,
             best_model_save_path=str(run_dir),
             verbose=0,
@@ -197,6 +198,7 @@ if __name__ == "__main__":
     parser.add_argument("--collision-reward", type=float, help="Crash reward, like -2. Works with --default-reward.")
     parser.add_argument("--high-speed-reward", type=float, help="Full-speed reward, like 2. Works with --default-reward.")
     parser.add_argument("--right-lane-reward", type=float, help="Rightmost lane reward, like 0.5. Works with --default-reward.")
+    parser.add_argument("--decisions-per-second", type=int, help="Defaults to 1. Scale --timesteps and --gamma to match.")
     parser.add_argument("--x-range", type=float, help="Metres that car distances are scaled by. Defaults to 200.")
     parser.add_argument("--seed", type=int, help="Repeat a setting with different seeds to see how much is luck.")
     parser.add_argument("--resume", type=Path, help="A saved .zip to continue from. Sets the algorithm too.")
@@ -212,6 +214,8 @@ if __name__ == "__main__":
         config.ENV_CONFIG = {**config.ENV_CONFIG, "high_speed_reward": args.high_speed_reward}
     if args.right_lane_reward is not None:
         config.ENV_CONFIG = {**config.ENV_CONFIG, "right_lane_reward": args.right_lane_reward}
+    if args.decisions_per_second is not None:
+        config.ENV_CONFIG = {**config.ENV_CONFIG, **config.decision_rate_config(args.decisions_per_second)}
     if args.x_range is not None:
         observation = config.observation_with_x_range(args.x_range)
         config.ENV_CONFIG = {**config.ENV_CONFIG, "observation": observation}

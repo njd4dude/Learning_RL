@@ -88,8 +88,8 @@ class DrivingStats:
     def update(self, local_vars: dict, _globals: dict | None = None) -> None:
         """Take one env's step, as evaluate_policy passes it to a callback."""
         i = local_vars["i"]
-        # Decisions are one simulated second apart, so each speed adds that many metres.
-        self.travelled[i] += local_vars["info"]["speed"]
+        # Each decision lasts a fixed simulated time, so speed gives the metres covered.
+        self.travelled[i] += local_vars["info"]["speed"] / config.decisions_per_second()
         self.steps[i] += 1
         if local_vars["done"]:
             self.distances.append(float(self.travelled[i]))
@@ -100,9 +100,9 @@ class DrivingStats:
     def results(self) -> dict:
         lengths = np.array(self.lengths)
         return {
-            "crash_rate": float(np.mean(lengths < config.MAX_EPISODE_STEPS)),
+            "crash_rate": float(np.mean(lengths < config.max_episode_steps())),
             "mean_distance": float(np.mean(self.distances)),
-            "mean_speed": float(np.sum(self.distances) / np.sum(lengths)),
+            "mean_speed": float(np.sum(self.distances) / (np.sum(lengths) / config.decisions_per_second())),
         }
 
 
@@ -129,7 +129,7 @@ def score(model: DQN | PPO, episodes: int = config.EVAL_EPISODES) -> dict:
 def describe(results: dict) -> str:
     return (
         f"mean_reward={results['mean_reward']:.2f} +/- {results['std_reward']:.2f}, "
-        f"mean_steps={results['mean_steps']:.1f}/{config.MAX_EPISODE_STEPS}, "
+        f"mean_steps={results['mean_steps']:.1f}/{config.max_episode_steps()}, "
         f"crash_rate={results['crash_rate']:.0%}, "
         f"mean_speed={results['mean_speed']:.1f}m/s, mean_distance={results['mean_distance']:.0f}m"
     )

@@ -231,7 +231,7 @@ def _caption(
     speed = env.unwrapped.vehicle.speed
     outcome = "" if reward is None else f"last reward {reward:+.2f}  "
     ending = "  CRASHED" if crashed else ""
-    return f"step {step}/{config.MAX_EPISODE_STEPS}  {speed:.0f} m/s  {name}  {outcome}total {total:.2f}{ending}"
+    return f"step {step}/{config.max_episode_steps()}  {speed:.0f} m/s  {name}  {outcome}total {total:.2f}{ending}"
 
 
 def play_episode(env, model, collector: FrameCollector | None = None) -> tuple[float, int, bool]:
@@ -279,7 +279,7 @@ def record(run_dir: Path, episodes: int) -> None:
         reward, steps, crashed = play_episode(env, model, collector)
         path = run_dir / "videos" / f"episode-{episode:02d}.mp4"
         path.parent.mkdir(parents=True, exist_ok=True)
-        imageio.mimsave(path, collector.frames, fps=config.VIDEO_FPS, macro_block_size=1)
+        imageio.mimsave(path, collector.frames, fps=env.unwrapped.config["simulation_frequency"], macro_block_size=1)
         print(f"{path}: reward {reward:.2f}, steps {steps}, crashed {crashed}")
     env.close()
 

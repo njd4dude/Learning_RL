@@ -68,11 +68,32 @@ PPO_KWARGS = dict(
     gamma=0.8,
 )
 
+# --- Decisions per second ---
+def decisions_per_second() -> int:
+    """How often the model chooses an action, under the current ENV_CONFIG."""
+    return ENV_CONFIG.get("policy_frequency", 1)
+
+
+def max_episode_steps() -> int:
+    return EPISODE_SECONDS * decisions_per_second()
+
+
+def decision_rate_config(decisions: int) -> dict:
+    """Settings for `decisions` a second, keeping each decision's simulated time exact.
+
+    highway-env runs simulation_frequency // policy_frequency frames a decision, so
+    15 frames a second at 2 decisions would drop a frame from each, and the 40 s
+    episode would only simulate 37 s. 16 fits exactly.
+    """
+    frames_per_decision = -(-15 // decisions)
+    return dict(policy_frequency=decisions, simulation_frequency=frames_per_decision * decisions)
+
+
 # --- Evaluation ---
 EVAL_EPISODES = 48  # final score, also used by evaluate.py
 TRAIN_EVAL_EPISODES = 24
 TRAIN_EVAL_STEPS = 2_500
-MAX_EPISODE_STEPS = 40  # highway-v0's "duration"; shorter episodes crashed
+EPISODE_SECONDS = 40  # highway-v0's "duration"; shorter episodes crashed
 
 # --- Saving ---
 # Each run writes runs/<timestamp>_<algo>_<name>/ with best_model.zip (top
@@ -102,6 +123,5 @@ ALGORITHMS = {
 }
 
 # --- Video recording ---
-VIDEO_FPS = 15  # the simulator's 15 frames a second, so videos play in real time
 VIDEO_EPISODES = 3
 VIDEO_END_HOLD_FRAMES = 30  # 2 seconds on the last frame, to read how it ended
