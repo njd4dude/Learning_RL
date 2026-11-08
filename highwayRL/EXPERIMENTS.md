@@ -20,33 +20,48 @@ is one training run, with no repeat seeds.
 
 | Run | Trained with | Distance | Crash rate | Mean speed | Own reward |
 |---|---|---|---|---|---|
+| `20261107_161057_dqn_240k-penalty2-lr25-resumed` | No normalizing, -2 crash, learning rate 2.5e-4 | 1102 m | 14% | 29.5 m/s | 16.96 |
+| `20261108_111309_dqn_320k-penalty2-lr125-resumed` | No normalizing, -2 crash, learning rate 1.25e-4 | 1075 m | 18% | 29.5 m/s | 16.35 |
+| `20261107_095805_dqn_320k-default-2hz-seed2-lr25-resumed` | Normalized, -1 crash, 2 decisions a second, gamma 0.9, learning rate 2.5e-4 | 1069 m | 24% | 29.7 m/s | 69.99 (80 steps, so not comparable) |
 | `penalty2_chain/20261105_170129_dqn_160k-penalty2-resumed` | No normalizing, -2 crash | 1057 m | 21% | 29.6 m/s | 15.84 |
+| `20261108_142659_dqn_320k-penalty2-lr25-resumed` | No normalizing, -2 crash, learning rate 2.5e-4 | 1056 m | 24% | 29.7 m/s | 16.14 |
 | `default_chain/20261106_130918_dqn_120k-default-resumed` | Normalized, -1 crash | 1053 m | 23% | 29.5 m/s | 33.95 |
 | `penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
+| `20261107_165432_dqn_200k-default-lr25-resumed` | Normalized, -1 crash, learning rate 2.5e-4 | 1017 m | 25% | 29.2 m/s | 33.42 |
 | `20261106_215013_dqn_240k-default-2hz-seed2` | Normalized, -1 crash, 2 decisions a second, gamma 0.9 | 1009 m | 34% | 29.6 m/s | 65.17 (80 steps, so not comparable) |
 | `20261106_155133_dqn_120k-default-gamma09-seed2` | Normalized, -1 crash, gamma 0.9 | 1001 m | 28% | 28.9 m/s | 32.54 |
 | `penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed` | No normalizing, -2 crash | 992 m | 32% | 29.4 m/s | 14.62 |
 | `20261106_212422_dqn_160k-default-gamma09-seed2-resumed` | Normalized, -1 crash, gamma 0.9 | 986 m | 19% | 27.3 m/s | 32.79 |
+| `20261108_122129_dqn_40k-off2-seed1` | No normalizing, -2 crash, 40k, seed 1 | 979 m | 44% | 29.5 m/s | 13.99 |
 | `20261106_142353_dqn_120k-default-seed2` | Normalized, -1 crash | 977 m | 34% | 29.6 m/s | 31.76 |
 | `normalized_speed2_chain/20261105_215327_dqn_120k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 972 m | 42% | 29.7 m/s | 31.83 |
 | `normalized_speed2_xrange100_chain/20261106_120112_dqn_80k-normalized-speed2-xrange100-resumed` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 972 m | 38% | 29.8 m/s | 31.75 |
+| `20261107_104023_dqn_120k-default-gamma09-explore03-seed2` | Normalized, -1 crash, gamma 0.9, epsilon decays over 30% of steps | 970 m | 40% | 29.7 m/s | 31.34 |
+| `20261108_134724_dqn_40k-off2-seed3` | No normalizing, -2 crash, 40k, seed 3 | 964 m | 39% | 29.3 m/s | 13.63 |
 | `normalized_speed2_chain/20261105_200605_dqn_80k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 947 m | 42% | 29.6 m/s | 30.87 |
 | `penalty2_chain/20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
 | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
+| `20261108_130435_dqn_40k-off2-seed2` | No normalizing, -2 crash, 40k, seed 2 | 873 m | 52% | 28.9 m/s | 11.93 |
 | `default_chain/20261104_171828_dqn_40k` | Normalized, -1 crash | 864 m | 17% | 23.9 m/s | 29.59 |
 | `20261106_135856_dqn_40k-normalized-speed2-crash5` | Normalized, -5 crash, 2 full speed | 853 m | 18% | 23.4 m/s | 29.36 |
+| `20261108_115946_dqn_40k-norm2-seed1` | Normalized, -2 crash, 40k, seed 1 | 849 m | 6% | 21.9 m/s | 32.89 |
+| `20261108_132555_dqn_40k-norm2-seed3` | Normalized, -2 crash, 40k, seed 3 | 840 m | 8% | 22.2 m/s | 32.39 |
 | `normalized_penalty2_chain/20261105_172705_dqn_80k-normalized-penalty2-resumed` | Normalized, -2 crash | 839 m | 27% | 24.3 m/s | 30.60 |
 | `normalized_penalty2_chain/20261105_135955_dqn_40k-normalized-penalty2` | Normalized, -2 crash | 836 m | 17% | 23.0 m/s | 31.37 |
 | `20261105_153008_dqn_20k-norm2-seed2` | Normalized, -2 crash | 832 m | 2% | 21.1 m/s | 32.78 |
+| `20261108_124242_dqn_40k-norm2-seed2` | Normalized, -2 crash, 40k, seed 2 | 832 m | 20% | 23.5 m/s | 31.23 |
 | `20261105_133450_dqn_40k-default-reward-repeat` | Normalized, -1 crash | 830 m | 49% | 27.1 m/s | 27.08 |
 | `20261104_190015_ppo_200k` | Normalized, -1 crash | 825 m | 22% | 24.1 m/s | 28.26 |
 | `20261104_161334_dqn_20k` | Normalized, -1 crash | 824 m | 20% | 23.2 m/s | 28.31 |
 | `ppo_lr3e-4_chain/20261105_113120_ppo_40k-lr3e-4` | No normalizing, -5 crash | 819 m | 8% | 21.4 m/s | 4.55 |
 | `20261105_144614_dqn_20k-norm1-seed2` | Normalized, -1 crash | 818 m | 6% | 21.4 m/s | 28.22 |
+| `20261107_180111_dqn_30k-default-gamma099-target500-seed2` | Normalized, -1 crash, gamma 0.99, target update every 500 steps, 30k steps | 808 m | 1% | 20.2 m/s | 29.12 |
 | `20261105_154440_dqn_20k-norm2-seed3` | Normalized, -2 crash | 800 m | 2% | 20.2 m/s | 32.78 |
+| `20261107_202041_dqn_60k-default-gamma099-target500-seed2-resumed` | Normalized, -1 crash, gamma 0.99, target update every 500 steps, 60k steps | 800 m | 4% | 20.4 m/s | 28.92 |
 | `20261105_102757_ppo_20k-lr1e-4` | No normalizing, -5 crash | 798 m | 2% | 20.1 m/s | 2.26 |
 | **Always `SLOWER` (baseline, no model)** | Not trained | 795 m | 2% | 20.0 m/s | 27.85 normalized, -1; 1.96 no normalizing, -5 |
 | `20261105_105138_ppo_20k-lr1e-4-default-reward` | Normalized, -1 crash | 794 m | 1% | 20.0 m/s | 27.79 |
+| `20261107_174508_dqn_30k-default-gamma099-seed2` | Normalized, -1 crash, gamma 0.99, 30k steps | 792 m | 3% | 20.1 m/s | 28.66 |
 | `20261105_111332_ppo_20k-lr3e-4` | No normalizing, -5 crash | 786 m | 8% | 20.8 m/s | 2.71 |
 | `normalized_speed2_xrange100_chain/20261106_112536_dqn_40k-normalized-speed2-xrange100` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 780 m | 68% | 28.7 m/s | 24.99 |
 | `normalized_speed2_chain/20261105_193556_dqn_40k-normalized-speed2` | Normalized, -2 crash, 2 full speed | 779 m | 70% | 29.5 m/s | 25.11 |
@@ -78,6 +93,24 @@ No clear difference: the spread between seeds is far larger than the gap between
 rewards. Medians favor -2 (2% against 18% crashes), but seed 1 went the other way, at
 43%. Seed 3 on -2 ran at 20.2 m/s, close to crawling. At 20k, none of these beat the
 always `SLOWER` baseline on speed by much. Three seeds can't separate these two.
+
+### Normalizing on or off, 40k
+
+DQN for 40k steps on seeds 1, 2 and 3, both with a -2 crash, scored over 200
+episodes. Mid-training evals were 48 episodes every 5,000 steps.
+
+| Reward | Seed 1 | Seed 2 | Seed 3 | Mean distance | Mean crash rate | Mean speed |
+|---|---|---|---|---|---|---|
+| Normalized, -2 crash | 849 m, 6% | 832 m, 20% | 840 m, 8% | 840 m | 11% | 22.5 m/s |
+| Not normalized, -2 crash | 979 m, 44% | 873 m, 52% | 964 m, 39% | 939 m | 45% | 29.2 m/s |
+
+Not normalizing went farther on every seed, by 41 to 130 m, the first setting to
+beat seed-to-seed spread. The two learn different things first: normalized runs
+drive safely but slowly, close to always braking's 20 m/s, since surviving pays
+about 0.7 a step; not normalized runs drive at nearly full speed and crash about
+half the time. At 40k that trade favors speed. It may not hold with more training:
+normalized chains later reached full speed too, and the best of each style ended
+close, at 1,102 m not normalized against 1,069 m normalized.
 
 ## Runs
 
@@ -367,3 +400,116 @@ before training.
 - **Change:** 2 decisions a second instead of 1, with gamma 0.9 for the same horizon and 240k steps for the same driving time, same default reward and seed as 120k-default-seed2
 - **Result:** mean_reward=65.17 +/- 19.99, mean_steps=68.3/80, crash_rate=34%, mean_speed=29.6m/s, mean_distance=1009m (200 episodes)
 - **Conclusion:** Wrong: crashes matched `120k-default-seed2` exactly at 34%, at the same 29.6 m/s, and distance was within noise at 1,009 m against 977 m. Deciding twice as often didn't make it react better, at least with the same driving time and a 15,000 step buffer, which now holds half as much driving. Its reward isn't comparable with 1-decision runs, since episodes have 80 steps. Training was paused for 10.4 hours overnight, so `train_seconds` and TensorBoard's wall time include that; it really trained for about 74 minutes. One run.
+
+### 20261107_095805_dqn_320k-default-2hz-seed2-lr25-resumed
+
+- **Hypothesis:** Halving the learning rate lets the 240k model settle, cutting crashes below its 34% at the same speed
+- **Change:** 80,000 more steps on the 240k two-decisions run's model.zip with its saved replay buffer, learning_rate 5e-4 to 2.5e-4, same reward, decision rate, gamma and seed (resumed from runs/20261106_215013_dqn_240k-default-2hz-seed2/model.zip)
+- **Result:** mean_reward=69.99 +/- 16.94, mean_steps=72.0/80, crash_rate=24%, mean_speed=29.7m/s, mean_distance=1069m (200 episodes)
+- **Conclusion:** Supported, though not proven: crashes fell from 34% to 24% and distance rose from 1,009 to 1,069 m at the same 29.7 m/s, the farthest of any run so far. The crash drop is at the edge of scoring noise, and it came with 80k more steps too, so the lower learning rate and the extra training can't be separated. Mid-training evals were best early on (17% and 21% at 245k and 265k) and drifted to 42% by 320k, so best_model.zip is probably an early checkpoint and the lucky pick of noisy 24-episode evals. One run.
+  Rescoring the best-looking checkpoints over 200 episodes found nothing better: 245k scored 32% and 1,002 m, 255k 38% and 982 m, 295k 28% and 1,045 m, and 315k 34% and 1,011 m. best_model.zip is the 265k checkpoint, and it stayed best at 24% and 1,069 m, so the pick held up here. The two 17% evals at 245k and 255k were luck, which shows how far a 24-episode eval can be off.
+
+### 20261107_104023_dqn_120k-default-gamma09-explore03-seed2
+
+- **Hypothesis:** Exploring longer before settling finds safer lane changes, cutting crashes below 120k-default-gamma09-seed2's 28% at about the same speed
+- **Change:** exploration_fraction 0.1 to 0.3, so epsilon decays over 36k steps instead of 12k, same default reward, gamma 0.9, seed 2 and 120k steps as 120k-default-gamma09-seed2
+- **Result:** mean_reward=31.34 +/- 10.96, mean_steps=32.6/40, crash_rate=40%, mean_speed=29.7m/s, mean_distance=970m (200 episodes)
+- **Conclusion:** Not supported: crashes rose from 28% to 40% and distance fell from 1,001 to 970 m, though speed was 0.8 m/s higher. The crash gap is beyond scoring noise, but identical settings have given 17% and 49% before, so one run can't show that slower exploration hurts. The 48-episode score of 31% and 1,021 m was again too kind. One run.
+
+### 20261107_161057_dqn_240k-penalty2-lr25-resumed
+
+- **Hypothesis:** Halving the learning rate lets the model settle, cutting crashes below 160k-penalty2's 21% at the same speed, as it did on the two-decisions run
+- **Change:** 80,000 more steps on 160k-penalty2's model.zip with its saved replay buffer, learning_rate 5e-4 to 2.5e-4, same no-normalizing -2 crash reward and gamma 0.8; mid-training evals now 48 episodes every 5,000 steps (resumed from runs/penalty2_chain/20261105_170129_dqn_160k-penalty2-resumed/model.zip)
+- **Result:** mean_reward=16.96 +/- 4.62, mean_steps=37.3/40, crash_rate=14%, mean_speed=29.5m/s, mean_distance=1102m (200 episodes)
+- **Conclusion:** Supported: crashes fell from 21% to 14% and distance rose from 1,057 to 1,102 m at about the same speed, the farthest of any run so far. Like the two-decisions run, it got 80k more steps as well as the lower learning rate, so the two can't be separated, and the same change didn't help 200k-default-lr25. One run.
+
+### 20261107_165432_dqn_200k-default-lr25-resumed
+
+- **Hypothesis:** Halving the learning rate lets the model settle, cutting crashes below 120k-default-resumed's 23% at the same speed, as it did on the two-decisions run
+- **Change:** 80,000 more steps on 120k-default-resumed's model.zip with its saved replay buffer, learning_rate 5e-4 to 2.5e-4, same default reward and gamma 0.8; mid-training evals now 48 episodes every 5,000 steps (resumed from runs/default_chain/20261106_130918_dqn_120k-default-resumed/model.zip)
+- **Result:** mean_reward=33.42 +/- 10.59, mean_steps=34.9/40, crash_rate=25%, mean_speed=29.2m/s, mean_distance=1017m (200 episodes)
+- **Conclusion:** Not supported: crashes stayed level at 25% against 23%, and distance fell from 1,053 to 1,017 m, both within noise. Halving the learning rate helped the penalty2 and two-decisions chains but not this one, so it isn't a reliable gain on its own. One run.
+
+### 20261107_174508_dqn_30k-default-gamma099-seed2
+
+- **Hypothesis:** Looking about 100 steps ahead, the whole episode, makes a crash cost the agent what it costs in distance; this quarter-way check shows whether DQN learns stably at gamma 0.99 before training further
+- **Change:** gamma 0.9 to 0.99, same default reward and seed as 120k-default-gamma09-seed2, stopped at 30k steps with exploration_fraction 0.4 so epsilon still decays over 12k steps; mid-training evals now 48 episodes every 5,000 steps
+- **Result:** best_model.zip: mean_reward=28.66 +/- 2.89, mean_steps=39.4/40, crash_rate=3%, mean_speed=20.1m/s, mean_distance=792m; model.zip at 30k: crash_rate=30%, mean_speed=21.9m/s, mean_distance=729m (200 episodes each)
+- **Conclusion:** Not yet driving well, and unstable: best_model.zip just crawls at 20 m/s like always braking, and the last model crashed 30% at 21.9 m/s. Mid-training evals swung between 0% and 90 to 100% crashes, which looks like the instability a fast target update causes at this horizon. gamma 0.9 at the same point (its 29,952-step checkpoint) scored 44% at 24.8 m/s and 781 m, so 30k steps is early for any gamma. One run.
+
+### 20261107_180111_dqn_30k-default-gamma099-target500-seed2
+
+- **Hypothesis:** Updating the target network 10 times less often keeps gamma 0.99 stable, so it drives better at 30k steps than 30k-default-gamma099-seed2
+- **Change:** target_update_interval 50 to 500, otherwise the same as 30k-default-gamma099-seed2
+- **Result:** best_model.zip: mean_reward=29.12 +/- 1.10, mean_steps=39.9/40, crash_rate=1%, mean_speed=20.2m/s, mean_distance=808m; model.zip at 30k: crash_rate=38%, mean_speed=21.9m/s, mean_distance=673m (200 episodes each)
+- **Conclusion:** Partly: mid-training evals improved steadily, 100%, 69%, 19%, 67%, 21% then 12% crashes, rather than swinging as with updates every 50 steps, so it looks more stable. But it hasn't learned to drive fast yet: best_model.zip crawls at 20 m/s, and the last model's 200-episode score of 38% was far worse than its 12% 48-episode eval. Worth training on to 120k. One run.
+
+### 20261107_202041_dqn_60k-default-gamma099-target500-seed2-resumed
+
+- **Hypothesis:** With more training, gamma 0.99 with slow target updates learns to drive fast without crashing, beating gamma 0.9's 44% and 781 m at 30k and heading toward its 28% and 1,001 m at 120k
+- **Change:** 30,000 more steps on 30k-default-gamma099-target500-seed2's model.zip with its saved replay buffer, exploration_fraction back to 0.1 so epsilon stays at 0.05, same reward, gamma 0.99, target updates every 500 steps and seed (resumed from runs/20261107_180111_dqn_30k-default-gamma099-target500-seed2/model.zip)
+- **Result:** best_model.zip: mean_reward=28.92 +/- 3.54, mean_steps=39.1/40, crash_rate=4%, mean_speed=20.4m/s, mean_distance=800m; model.zip at 60k: crash_rate=92%, mean_speed=27.4m/s, mean_distance=546m (200 episodes each)
+- **Conclusion:** Not yet: mid-training evals swung between crawling and crashing, 77%, 98%, 25%, 2%, 48% then 94% crashes, so the steady improvement seen up to 30k didn't continue. best_model.zip still crawls at 20 m/s, and the last model drives fast but crashed 92% of the time. Epsilon stayed at 0.05, so this isn't extra exploration. One run.
+
+### 20261108_111309_dqn_320k-penalty2-lr125-resumed
+
+- **Hypothesis:** Halving the learning rate again lets the model settle further, cutting crashes below 240k-penalty2-lr25's 14% at the same speed
+- **Change:** 80,000 more steps on 240k-penalty2-lr25's model.zip with its saved replay buffer, learning_rate 2.5e-4 to 1.25e-4, same no-normalizing -2 crash reward and gamma 0.8 (resumed from runs/20261107_161057_dqn_240k-penalty2-lr25-resumed/model.zip)
+- **Result:** mean_reward=16.35 +/- 5.49, mean_steps=36.5/40, crash_rate=18%, mean_speed=29.5m/s, mean_distance=1075m (200 episodes)
+- **Conclusion:** Not supported: 18% and 1,075 m against 14% and 1,102 m, within scoring noise, so halving the learning rate again didn't help. Mid-training evals stayed between 6% and 33% throughout, steadier than earlier chains, which suggests this chain has levelled off around 15% rather than still improving. The 48-episode score of 8% and 1,132 m was again too kind. One run.
+
+### 20261108_115946_dqn_40k-norm2-seed1
+
+- **Hypothesis:** Normalizing on or off, with a -2 crash, at 40k steps over seeds 1 to 3: this is the normalized side
+- **Change:** Seed 1 of 3, normalized reward with collision_reward -2, 40k steps
+- **Result:** mean_reward=32.89 +/- 4.50, mean_steps=38.9/40, crash_rate=6%, mean_speed=21.9m/s, mean_distance=849m (200 episodes)
+- **Conclusion:** See the 40k normalizing comparison at the top.
+
+### 20261108_122129_dqn_40k-off2-seed1
+
+- **Hypothesis:** Normalizing on or off, with a -2 crash, at 40k steps over seeds 1 to 3: this is the not normalized side
+- **Change:** Seed 1 of 3, normalize_reward off with collision_reward -2, 40k steps
+- **Result:** mean_reward=13.99 +/- 5.64, mean_steps=33.2/40, crash_rate=44%, mean_speed=29.5m/s, mean_distance=979m (200 episodes)
+- **Conclusion:** See the 40k normalizing comparison at the top.
+
+### 20261108_124242_dqn_40k-norm2-seed2
+
+- **Hypothesis:** Normalizing on or off, with a -2 crash, at 40k steps over seeds 1 to 3: this is the normalized side
+- **Change:** Seed 2 of 3, normalized reward with collision_reward -2, 40k steps
+- **Result:** mean_reward=31.23 +/- 9.42, mean_steps=35.4/40, crash_rate=20%, mean_speed=23.5m/s, mean_distance=832m (200 episodes)
+- **Conclusion:** See the 40k normalizing comparison at the top.
+
+### 20261108_130435_dqn_40k-off2-seed2
+
+- **Hypothesis:** Normalizing on or off, with a -2 crash, at 40k steps over seeds 1 to 3: this is the not normalized side
+- **Change:** Seed 2 of 3, normalize_reward off with collision_reward -2, 40k steps
+- **Result:** mean_reward=11.93 +/- 6.10, mean_steps=30.2/40, crash_rate=52%, mean_speed=28.9m/s, mean_distance=873m (200 episodes)
+- **Conclusion:** See the 40k normalizing comparison at the top.
+
+### 20261108_132555_dqn_40k-norm2-seed3
+
+- **Hypothesis:** Normalizing on or off, with a -2 crash, at 40k steps over seeds 1 to 3: this is the normalized side
+- **Change:** Seed 3 of 3, normalized reward with collision_reward -2, 40k steps
+- **Result:** mean_reward=32.39 +/- 6.63, mean_steps=37.9/40, crash_rate=8%, mean_speed=22.2m/s, mean_distance=840m (200 episodes)
+- **Conclusion:** See the 40k normalizing comparison at the top.
+
+### 20261108_134724_dqn_40k-off2-seed3
+
+- **Hypothesis:** Normalizing on or off, with a -2 crash, at 40k steps over seeds 1 to 3: this is the not normalized side
+- **Change:** Seed 3 of 3, normalize_reward off with collision_reward -2, 40k steps
+- **Result:** mean_reward=13.63 +/- 6.05, mean_steps=32.8/40, crash_rate=39%, mean_speed=29.3m/s, mean_distance=964m (200 episodes)
+- **Conclusion:** See the 40k normalizing comparison at the top.
+
+### 20261108_142659_dqn_320k-penalty2-lr25-resumed
+
+- **Hypothesis:** Training 80k more steps at the same 2.5e-4 cuts crashes below 240k-penalty2-lr25's 14%, unlike halving the learning rate again (320k-penalty2-lr125, 18%)
+- **Change:** 80,000 more steps on 240k-penalty2-lr25's model.zip with its saved replay buffer, same learning_rate 2.5e-4, no-normalizing -2 crash reward and gamma 0.8 (resumed from runs/20261107_161057_dqn_240k-penalty2-lr25-resumed/model.zip)
+- **Result:** mean_reward=16.14 +/- 5.45, mean_steps=35.5/40, crash_rate=24%, mean_speed=29.7m/s, mean_distance=1056m (200 episodes)
+- **Conclusion:** Not supported: 24% and 1,056 m against 14% and 1,102 m. With 320k-penalty2-lr125 at 18% and 1,075 m from the same starting model, neither learning rate improved on 240k-penalty2-lr25, so the chain has levelled off rather than being held back by the learning rate. Mid-training evals stayed between 12% and 35% without a trend. The 48-episode score of 17% and 1,135 m was again too kind. One run.
+
+### 20261108_152042_dqn_80k-norm2-seed1-resumed
+
+- **Hypothesis:** With more training, normalized runs speed up from about 22 m/s and close the gap to not normalizing's 939 m mean at 40k
+- **Change:** 40,000 more steps on 40k-norm2-seed1's model.zip with its saved replay buffer, same normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_115946_dqn_40k-norm2-seed1/model.zip)
+- **Result:** mean_reward=34.51 +/- 5.48, mean_steps=38.4/40, crash_rate=8%, mean_speed=24.2m/s, mean_distance=931m (48 episodes)
+- **Conclusion:** TODO
