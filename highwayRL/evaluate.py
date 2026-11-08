@@ -4,6 +4,7 @@ Usage:
     python evaluate.py                  # newest run
     python evaluate.py runs/<run>       # a specific run folder
     python evaluate.py --config-reward  # on config.py's reward, not the run's own
+    python evaluate.py runs/<run> --model runs/<run>/checkpoints/dqn_100000_steps.zip
 
 Runs are scored on the reward they trained with by default. Mean speed, distance
 and crash rate don't depend on the reward, so they compare across all runs. Each
@@ -52,12 +53,13 @@ def run_algo(run_dir: Path) -> str:
     return run_dir.name.split("_")[2]
 
 
-def load_best(run_dir: Path) -> DQN | PPO:
-    """Load a run's best model, or its last one if it has no best saved.
+def load_best(run_dir: Path, path: Path | None = None) -> DQN | PPO:
+    """Load a run's best model, or its last one if it has no best saved, or `path` if given.
 
     Training can get worse late on, so the last step is often not the best.
     """
-    path = run_dir / "best_model.zip"
+    if path is None:
+        path = run_dir / "best_model.zip"
     if not path.is_file():
         path = run_dir / "model.zip"
     print(f"Loading {path}")
@@ -139,6 +141,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dir", nargs="?", help="Run folder. Defaults to the newest.")
     parser.add_argument("--episodes", type=int, default=config.EVAL_EPISODES)
+    parser.add_argument("--model", type=Path, help="A .zip to score instead of the run's best_model.zip.")
     parser.add_argument("--config-reward", action="store_true", help="Use config.py's reward, not the run's own.")
     args = parser.parse_args()
 
@@ -146,8 +149,11 @@ if __name__ == "__main__":
     if not args.config_reward:
         config.ENV_CONFIG = trained_reward(run_dir)
     print(f"Scoring {run_dir} over {args.episodes} episodes...")
-    result = describe(score(load_best(run_dir), args.episodes))
+    if args.model and not args.model.is_file():
+        parser.error(f"--model file not found: {args.model}")
+    result = describe(score(load_best(run_dir, args.model), args.episodes))
     print(result)
     stamp = datetime.now().isoformat(timespec="minutes")
     with (run_dir / "eval.txt").open("a", encoding="utf-8") as log:
-        log.write(f"{stamp}  episodes={args.episodes}  reward={config.ENV_CONFIG}  {result}\n")
+        model_note = f"  model={args.model.as_posix()}" if args.model else ""
+        log.write(f"{stamp}{model_note}  episodes={args.episodes}  reward={config.ENV_CONFIG}  {result}\n")
