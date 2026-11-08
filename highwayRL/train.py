@@ -4,7 +4,9 @@ Every run says what it tests, with all three of these:
     python train.py --name penalty10 --hypothesis "Fewer crashes" --change "Crash penalty -10"
 
 Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
-`--learning-rate 1e-4` or `--gamma 0.9` to override config.py, `--decisions-per-second 2`
+`--learning-rate 1e-4` or `--gamma 0.9` to override config.py, `--exploration-fraction 0.3`
+for a DQN's epsilon to decay over 30% of the run instead of 10%, `--target-update-interval 500`
+for a DQN's target network to update every 500 steps instead of 50, `--decisions-per-second 2`
 to choose more often than once a second, `--default-reward` to train on
 highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` or
 `--high-speed-reward 2` to set the crash penalty or full-speed reward on top of
@@ -92,6 +94,10 @@ def _write_run_log(
         "learning_rate": model.learning_rate,
         "gamma": model.gamma,
     }
+    if isinstance(model, DQN):
+        hyperparameters["exploration_fraction"] = model.exploration_fraction
+        hyperparameters["exploration_final_eps"] = model.exploration_final_eps
+        hyperparameters["target_update_interval"] = model.target_update_interval
     lines += [f"  {key}: {value}" for key, value in hyperparameters.items()]
     (run_dir / "run.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -118,6 +124,8 @@ def train(
     resume: Path | None = None,
     seed: int | None = None,
     gamma: float | None = None,
+    exploration_fraction: float | None = None,
+    target_update_interval: int | None = None,
 ) -> Path:
     settings = config.ALGORITHMS[algo]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -130,6 +138,10 @@ def train(
     overrides = {"learning_rate": learning_rate} if learning_rate else {}
     if gamma is not None:
         overrides["gamma"] = gamma
+    if exploration_fraction is not None:
+        overrides["exploration_fraction"] = exploration_fraction
+    if target_update_interval is not None:
+        overrides["target_update_interval"] = target_update_interval
     if resume:
         model = MODELS[algo].load(resume, env=env, device="cpu", custom_objects=overrides)
         model.set_random_seed(seed)
@@ -194,6 +206,16 @@ if __name__ == "__main__":
     parser.add_argument("--timesteps", type=int, help="Defaults to the algorithm's value in config.py.")
     parser.add_argument("--learning-rate", type=float, help="Defaults to the algorithm's value in config.py.")
     parser.add_argument("--gamma", type=float, help="Defaults to the algorithm's value in config.py.")
+    parser.add_argument(
+        "--exploration-fraction",
+        type=float,
+        help="DQN only: share of this run's steps that epsilon decays over. Defaults to 0.1.",
+    )
+    parser.add_argument(
+        "--target-update-interval",
+        type=int,
+        help="DQN only: steps between target network updates. Defaults to 50.",
+    )
     parser.add_argument("--default-reward", action="store_true", help="Ignore ENV_CONFIG for this run.")
     parser.add_argument("--collision-reward", type=float, help="Crash reward, like -2. Works with --default-reward.")
     parser.add_argument("--high-speed-reward", type=float, help="Full-speed reward, like 2. Works with --default-reward.")
@@ -225,4 +247,9 @@ if __name__ == "__main__":
             parser.error(f"--resume file not found: {args.resume}")
         source = args.resume.parent
         algo = run_algo(source.parent if source.name == "checkpoints" else source)
-    train(algo, args.timesteps, args.name, args.hypothesis, args.change, args.learning_rate, args.resume, args.seed, args.gamma)
+    if algo != "dqn" and (args.exploration_fraction is not None or args.target_update_interval is not None):
+        parser.error("--exploration-fraction and --target-update-interval only apply to DQN")
+    train(
+        algo, args.timesteps, args.name, args.hypothesis, args.change, args.learning_rate,
+        args.resume, args.seed, args.gamma, args.exploration_fraction, args.target_update_interval,
+    )
