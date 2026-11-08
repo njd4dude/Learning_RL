@@ -91,8 +91,11 @@ def decision_rate_config(decisions: int) -> dict:
 
 # --- Evaluation ---
 EVAL_EPISODES = 48  # final score, also used by evaluate.py
-TRAIN_EVAL_EPISODES = 24
-TRAIN_EVAL_STEPS = 2_500
+# Mid-training evals pick best_model.zip. 24 episodes misjudged checkpoints by 15
+# to 20 points of crash rate, so they use 48 (a multiple of the 12 envs), half as
+# often, for the same eval time.
+TRAIN_EVAL_EPISODES = 48
+TRAIN_EVAL_STEPS = 5_000
 EPISODE_SECONDS = 40  # highway-v0's "duration"; shorter episodes crashed
 
 # --- Saving ---
