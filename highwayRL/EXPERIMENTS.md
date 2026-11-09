@@ -20,6 +20,7 @@ is one training run, with no repeat seeds.
 
 | Run | Trained with | Distance | Crash rate | Mean speed | Own reward |
 |---|---|---|---|---|---|
+| `20261108_190824_dqn_320k-penalty2-lr25-buffer50k-resumed` | No normalizing, -2 crash, learning rate 2.5e-4, 50,000 step buffer | 1107 m | 14% | 29.8 m/s | 17.19 |
 | `20261107_161057_dqn_240k-penalty2-lr25-resumed` | No normalizing, -2 crash, learning rate 2.5e-4 | 1102 m | 14% | 29.5 m/s | 16.96 |
 | `20261108_111309_dqn_320k-penalty2-lr125-resumed` | No normalizing, -2 crash, learning rate 1.25e-4 | 1075 m | 18% | 29.5 m/s | 16.35 |
 | `20261107_095805_dqn_320k-default-2hz-seed2-lr25-resumed` | Normalized, -1 crash, 2 decisions a second, gamma 0.9, learning rate 2.5e-4 | 1069 m | 24% | 29.7 m/s | 69.99 (80 steps, so not comparable) |
@@ -28,6 +29,7 @@ is one training run, with no repeat seeds.
 | `default_chain/20261106_130918_dqn_120k-default-resumed` | Normalized, -1 crash | 1053 m | 23% | 29.5 m/s | 33.95 |
 | `penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
 | `20261108_154243_dqn_80k-off2-seed1-resumed` | No normalizing, -2 crash, 80k, seed 1 | 1041 m | 32% | 29.6 m/s | 15.40 |
+| `20261108_221622_dqn_120k-off2-noright-seed1-resumed` | No normalizing, -2 crash, no right lane reward, 120k, seed 1 | 1040 m | 30% | 29.8 m/s | 13.06 |
 | `20261107_165432_dqn_200k-default-lr25-resumed` | Normalized, -1 crash, learning rate 2.5e-4 | 1017 m | 25% | 29.2 m/s | 33.42 |
 | `20261106_215013_dqn_240k-default-2hz-seed2` | Normalized, -1 crash, 2 decisions a second, gamma 0.9 | 1009 m | 34% | 29.6 m/s | 65.17 (80 steps, so not comparable) |
 | `20261108_162851_dqn_80k-off2-seed2-resumed` | No normalizing, -2 crash, 80k, seed 2 | 1006 m | 34% | 29.6 m/s | 14.84 |
@@ -41,11 +43,14 @@ is one training run, with no repeat seeds.
 | `normalized_speed2_xrange100_chain/20261106_120112_dqn_80k-normalized-speed2-xrange100-resumed` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 972 m | 38% | 29.8 m/s | 31.75 |
 | `20261107_104023_dqn_120k-default-gamma09-explore03-seed2` | Normalized, -1 crash, gamma 0.9, epsilon decays over 30% of steps | 970 m | 40% | 29.7 m/s | 31.34 |
 | `20261108_134724_dqn_40k-off2-seed3` | No normalizing, -2 crash, 40k, seed 3 | 964 m | 39% | 29.3 m/s | 13.63 |
+| `20261108_214723_dqn_80k-off2-noright-seed1-resumed` | No normalizing, -2 crash, no right lane reward, 80k, seed 1 | 963 m | 39% | 29.8 m/s | 11.83 |
+| `20261108_224203_dqn_120k-off2-seed1-resumed` | No normalizing, -2 crash, 120k, seed 1 | 954 m | 44% | 29.6 m/s | 13.52 |
 | `normalized_speed2_chain/20261105_200605_dqn_80k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 947 m | 42% | 29.6 m/s | 30.87 |
 | `penalty2_chain/20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
 | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
 | `20261108_152042_dqn_80k-norm2-seed1-resumed` | Normalized, -2 crash, 80k, seed 1 | 904 m | 13% | 24.2 m/s | 33.53 |
 | `20261108_175722_dqn_40k-norm-speed2-crash3-seed1` | Normalized, -3 crash, 2 full speed, 40k, seed 1 | 902 m | 42% | 28.2 m/s | 29.22 |
+| `20261108_212609_dqn_40k-off2-noright-seed1` | No normalizing, -2 crash, no right lane reward, 40k, seed 1 | 892 m | 59% | 29.6 m/s | 10.38 |
 | `20261108_160553_dqn_80k-norm2-seed2-resumed` | Normalized, -2 crash, 80k, seed 2 | 889 m | 22% | 25.3 m/s | 31.87 |
 | `20261108_130435_dqn_40k-off2-seed2` | No normalizing, -2 crash, 40k, seed 2 | 873 m | 52% | 28.9 m/s | 11.93 |
 | `default_chain/20261104_171828_dqn_40k` | Normalized, -1 crash | 864 m | 17% | 23.9 m/s | 29.59 |
@@ -484,7 +489,7 @@ before training.
 - **Hypothesis:** With more training, gamma 0.99 with slow target updates learns to drive fast without crashing, beating gamma 0.9's 44% and 781 m at 30k and heading toward its 28% and 1,001 m at 120k
 - **Change:** 30,000 more steps on 30k-default-gamma099-target500-seed2's model.zip with its saved replay buffer, exploration_fraction back to 0.1 so epsilon stays at 0.05, same reward, gamma 0.99, target updates every 500 steps and seed (resumed from runs/20261107_180111_dqn_30k-default-gamma099-target500-seed2/model.zip)
 - **Result:** best_model.zip: mean_reward=28.92 +/- 3.54, mean_steps=39.1/40, crash_rate=4%, mean_speed=20.4m/s, mean_distance=800m; model.zip at 60k: crash_rate=92%, mean_speed=27.4m/s, mean_distance=546m (200 episodes each)
-- **Conclusion:** Not yet: mid-training evals swung between crawling and crashing, 77%, 98%, 25%, 2%, 48% then 94% crashes, so the steady improvement seen up to 30k didn't continue. best_model.zip still crawls at 20 m/s, and the last model drives fast but crashed 92% of the time. Epsilon stayed at 0.05, so this isn't extra exploration. One run.
+- **Conclusion:** Not yet: mid-training evals swung between crawling and crashing, 77%, 98%, 25%, 2%, 48% then 94% crashes, so the steady improvement seen up to 30k didn't continue. best_model.zip still crawls at 20 m/s, and the last model drives fast but crashed 92% of the time. Epsilon stayed at 0.05, so this isn't extra exploration. gamma 0.9 at the same point (120k-default-gamma09-seed2's 59,904-step checkpoint) scored 42% at 27.3 m/s and 869 m over 200 episodes, so gamma 0.99 was clearly behind, and it wasn't continued to 120k. One run.
 
 ### 20261108_111309_dqn_320k-penalty2-lr125-resumed
 
@@ -604,3 +609,38 @@ before training.
 - **Change:** Seed 3 of 3, normalized reward with high_speed_reward 2 and collision_reward -3, 40k steps
 - **Result:** mean_reward=25.97 +/- 11.86, mean_steps=27.6/40, crash_rate=64%, mean_speed=29.0m/s, mean_distance=801m (200 episodes)
 - **Conclusion:** See the speed 2, -3 crash comparison at the top.
+
+### 20261108_190824_dqn_320k-penalty2-lr25-buffer50k-resumed
+
+- **Hypothesis:** A 50k replay buffer keeps rare close calls long enough to learn from, cutting crashes below 240k-penalty2-lr25's 14%, where 80k more steps with the 15k buffer gave 24% (lr 2.5e-4) and 18% (lr 1.25e-4)
+- **Change:** 80,000 more steps on 240k-penalty2-lr25's model.zip with its saved replay buffer copied into a 50,000-step buffer instead of 15,000, same learning_rate 2.5e-4, no-normalizing -2 crash reward and gamma 0.8 (resumed from runs/20261107_161057_dqn_240k-penalty2-lr25-resumed/model.zip)
+- **Result:** mean_reward=17.19 +/- 4.66, mean_steps=37.2/40, crash_rate=14%, mean_speed=29.8m/s, mean_distance=1107m (200 episodes)
+- **Conclusion:** Partly: 14% and 1,107 m ties 240k-penalty2-lr25's 14% and 1,102 m rather than beating it, but it clearly beat the same 80k steps with the 15k buffer (320k-penalty2-lr25, 24% and 1,056 m). Mid-training evals averaged 19% crashes against 23% with the 15k buffer, and best_model.zip came from 310k, late in the run, so it isn't just the starting model. A bigger buffer looks like it stops the decline that more training caused with 15k. Its 48-episode final score was 31% and 975 m, far harsher than the 200-episode score, so 48 episodes can be off in either direction. One run.
+
+### 20261108_212609_dqn_40k-off2-noright-seed1
+
+- **Hypothesis:** The right lane reward doesn't add distance, so removing it frees the agent to use any lane; this is the first 40k of an 80k run
+- **Change:** right_lane_reward 0.1 to 0, otherwise the same not normalized -2 crash reward, seed and settings as 40k-off2-seed1
+- **Result:** mean_reward=10.38 +/- 5.29, mean_steps=30.2/40, crash_rate=59%, mean_speed=29.6m/s, mean_distance=892m (200 episodes)
+- **Conclusion:** Worse than with the right lane reward: 892 m and 59% crashes against 40k-off2-seed1's 979 m and 44%, at the same speed. The first 40k of 80k-off2-noright-seed1-resumed; see its conclusion.
+
+### 20261108_214723_dqn_80k-off2-noright-seed1-resumed
+
+- **Hypothesis:** Without the right lane reward, it goes farther than 80k-off2-seed1-resumed's 1,041 m and 32% crashes, trained the same way
+- **Change:** 40,000 more steps on 40k-off2-noright-seed1's model.zip with its saved replay buffer, right_lane_reward 0, otherwise the same as 80k-off2-seed1-resumed (resumed from runs/20261108_212609_dqn_40k-off2-noright-seed1/model.zip)
+- **Result:** mean_reward=11.83 +/- 5.48, mean_steps=32.4/40, crash_rate=39%, mean_speed=29.8m/s, mean_distance=963m (200 episodes)
+- **Conclusion:** Not supported: 963 m and 39% crashes against 80k-off2-seed1-resumed's 1,041 m and 32%, trained the same way, and below all three seeds with the right lane reward at 80k (995 to 1,041 m). It was behind at 40k too, by 87 m. Removing the bonus made it crash more at the same speed, so the right lane reward may help, perhaps by giving it a steady lane to settle in. One seed, so not proven.
+
+### 20261108_221622_dqn_120k-off2-noright-seed1-resumed
+
+- **Hypothesis:** Without the right lane reward it just learns more slowly, so with 40k more steps it catches up with the right lane reward's 1,041 m at 80k
+- **Change:** 40,000 more steps on 80k-off2-noright-seed1-resumed's model.zip with its saved replay buffer, same reward without the right lane bonus, learning rate and seed (resumed from runs/20261108_214723_dqn_80k-off2-noright-seed1-resumed/model.zip)
+- **Result:** mean_reward=13.06 +/- 4.85, mean_steps=34.9/40, crash_rate=30%, mean_speed=29.8m/s, mean_distance=1040m (200 episodes)
+- **Conclusion:** It kept improving, from 963 m and 39% at 80k to 1,040 m and 30%, and at 120k it beat the same seed with the right lane reward (120k-off2-seed1-resumed, 954 m and 44%). That reverses the 40k and 80k results, so on one seed neither reward is clearly better; see that run's conclusion.
+
+### 20261108_224203_dqn_120k-off2-seed1-resumed
+
+- **Hypothesis:** Control for 120k-off2-noright-seed1-resumed: the right lane reward run trained to the same 120k steps
+- **Change:** 40,000 more steps on 80k-off2-seed1-resumed's model.zip with its saved replay buffer, same not normalized -2 crash reward with the right lane bonus, learning rate and seed (resumed from runs/20261108_154243_dqn_80k-off2-seed1-resumed/model.zip)
+- **Result:** mean_reward=13.52 +/- 6.24, mean_steps=32.2/40, crash_rate=44%, mean_speed=29.6m/s, mean_distance=954m (200 episodes)
+- **Conclusion:** Got worse with 40k more steps, from 1,041 m and 32% at 80k to 954 m and 44%, and fell behind the run without the right lane reward at 120k (1,040 m and 30%). With the right lane reward ahead at 40k and 80k and behind at 120k, single runs swing too much to say whether the bonus matters. Repeat seeds would be needed. One run.
