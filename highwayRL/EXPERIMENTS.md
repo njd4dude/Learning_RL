@@ -27,9 +27,12 @@ is one training run, with no repeat seeds.
 | `20261108_142659_dqn_320k-penalty2-lr25-resumed` | No normalizing, -2 crash, learning rate 2.5e-4 | 1056 m | 24% | 29.7 m/s | 16.14 |
 | `default_chain/20261106_130918_dqn_120k-default-resumed` | Normalized, -1 crash | 1053 m | 23% | 29.5 m/s | 33.95 |
 | `penalty2_chain/20261105_163251_dqn_120k-penalty2-resumed` | No normalizing, -2 crash | 1049 m | 22% | 29.3 m/s | 15.59 |
+| `20261108_154243_dqn_80k-off2-seed1-resumed` | No normalizing, -2 crash, 80k, seed 1 | 1041 m | 32% | 29.6 m/s | 15.40 |
 | `20261107_165432_dqn_200k-default-lr25-resumed` | Normalized, -1 crash, learning rate 2.5e-4 | 1017 m | 25% | 29.2 m/s | 33.42 |
 | `20261106_215013_dqn_240k-default-2hz-seed2` | Normalized, -1 crash, 2 decisions a second, gamma 0.9 | 1009 m | 34% | 29.6 m/s | 65.17 (80 steps, so not comparable) |
+| `20261108_162851_dqn_80k-off2-seed2-resumed` | No normalizing, -2 crash, 80k, seed 2 | 1006 m | 34% | 29.6 m/s | 14.84 |
 | `20261106_155133_dqn_120k-default-gamma09-seed2` | Normalized, -1 crash, gamma 0.9 | 1001 m | 28% | 28.9 m/s | 32.54 |
+| `20261108_171729_dqn_80k-off2-seed3-resumed` | No normalizing, -2 crash, 80k, seed 3 | 995 m | 36% | 29.6 m/s | 14.37 |
 | `penalty2_chain/20261105_160009_dqn_80k-penalty2-resumed` | No normalizing, -2 crash | 992 m | 32% | 29.4 m/s | 14.62 |
 | `20261106_212422_dqn_160k-default-gamma09-seed2-resumed` | Normalized, -1 crash, gamma 0.9 | 986 m | 19% | 27.3 m/s | 32.79 |
 | `20261108_122129_dqn_40k-off2-seed1` | No normalizing, -2 crash, 40k, seed 1 | 979 m | 44% | 29.5 m/s | 13.99 |
@@ -41,6 +44,9 @@ is one training run, with no repeat seeds.
 | `normalized_speed2_chain/20261105_200605_dqn_80k-normalized-speed2-resumed` | Normalized, -2 crash, 2 full speed | 947 m | 42% | 29.6 m/s | 30.87 |
 | `penalty2_chain/20261104_210951_dqn_penalty2` | No normalizing, -2 crash | 921 m | 46% | 29.2 m/s | 12.84 |
 | `20261104_215246_dqn_penalty5` | No normalizing, -5 crash | 916 m | 40% | 27.9 m/s | 10.74 |
+| `20261108_152042_dqn_80k-norm2-seed1-resumed` | Normalized, -2 crash, 80k, seed 1 | 904 m | 13% | 24.2 m/s | 33.53 |
+| `20261108_175722_dqn_40k-norm-speed2-crash3-seed1` | Normalized, -3 crash, 2 full speed, 40k, seed 1 | 902 m | 42% | 28.2 m/s | 29.22 |
+| `20261108_160553_dqn_80k-norm2-seed2-resumed` | Normalized, -2 crash, 80k, seed 2 | 889 m | 22% | 25.3 m/s | 31.87 |
 | `20261108_130435_dqn_40k-off2-seed2` | No normalizing, -2 crash, 40k, seed 2 | 873 m | 52% | 28.9 m/s | 11.93 |
 | `default_chain/20261104_171828_dqn_40k` | Normalized, -1 crash | 864 m | 17% | 23.9 m/s | 29.59 |
 | `20261106_135856_dqn_40k-normalized-speed2-crash5` | Normalized, -5 crash, 2 full speed | 853 m | 18% | 23.4 m/s | 29.36 |
@@ -56,12 +62,15 @@ is one training run, with no repeat seeds.
 | `ppo_lr3e-4_chain/20261105_113120_ppo_40k-lr3e-4` | No normalizing, -5 crash | 819 m | 8% | 21.4 m/s | 4.55 |
 | `20261105_144614_dqn_20k-norm1-seed2` | Normalized, -1 crash | 818 m | 6% | 21.4 m/s | 28.22 |
 | `20261107_180111_dqn_30k-default-gamma099-target500-seed2` | Normalized, -1 crash, gamma 0.99, target update every 500 steps, 30k steps | 808 m | 1% | 20.2 m/s | 29.12 |
+| `20261108_183901_dqn_40k-norm-speed2-crash3-seed3` | Normalized, -3 crash, 2 full speed, 40k, seed 3 | 801 m | 64% | 29.0 m/s | 25.97 |
 | `20261105_154440_dqn_20k-norm2-seed3` | Normalized, -2 crash | 800 m | 2% | 20.2 m/s | 32.78 |
 | `20261107_202041_dqn_60k-default-gamma099-target500-seed2-resumed` | Normalized, -1 crash, gamma 0.99, target update every 500 steps, 60k steps | 800 m | 4% | 20.4 m/s | 28.92 |
 | `20261105_102757_ppo_20k-lr1e-4` | No normalizing, -5 crash | 798 m | 2% | 20.1 m/s | 2.26 |
 | **Always `SLOWER` (baseline, no model)** | Not trained | 795 m | 2% | 20.0 m/s | 27.85 normalized, -1; 1.96 no normalizing, -5 |
 | `20261105_105138_ppo_20k-lr1e-4-default-reward` | Normalized, -1 crash | 794 m | 1% | 20.0 m/s | 27.79 |
 | `20261107_174508_dqn_30k-default-gamma099-seed2` | Normalized, -1 crash, gamma 0.99, 30k steps | 792 m | 3% | 20.1 m/s | 28.66 |
+| `20261108_165537_dqn_80k-norm2-seed3-resumed` | Normalized, -2 crash, 80k, seed 3 | 789 m | 58% | 27.9 m/s | 26.46 |
+| `20261108_181823_dqn_40k-norm-speed2-crash3-seed2` | Normalized, -3 crash, 2 full speed, 40k, seed 2 | 789 m | 63% | 29.1 m/s | 25.54 |
 | `20261105_111332_ppo_20k-lr3e-4` | No normalizing, -5 crash | 786 m | 8% | 20.8 m/s | 2.71 |
 | `normalized_speed2_xrange100_chain/20261106_112536_dqn_40k-normalized-speed2-xrange100` | Normalized, -2 crash, 2 full speed, car distance scaled to 100 m | 780 m | 68% | 28.7 m/s | 24.99 |
 | `normalized_speed2_chain/20261105_193556_dqn_40k-normalized-speed2` | Normalized, -2 crash, 2 full speed | 779 m | 70% | 29.5 m/s | 25.11 |
@@ -111,6 +120,32 @@ about 0.7 a step; not normalized runs drive at nearly full speed and crash about
 half the time. At 40k that trade favors speed. It may not hold with more training:
 normalized chains later reached full speed too, and the best of each style ended
 close, at 1,102 m not normalized against 1,069 m normalized.
+
+Resumed to 80k with their replay buffers, same reward and seed:
+
+| Reward | Seed 1 | Seed 2 | Seed 3 | Mean distance | Mean crash rate | Mean speed |
+|---|---|---|---|---|---|---|
+| Normalized, -2 crash | 904 m, 13% | 889 m, 22% | 789 m, 58% | 861 m | 31% | 25.8 m/s |
+| Not normalized, -2 crash | 1,041 m, 32% | 1,006 m, 34% | 995 m, 36% | 1,014 m | 34% | 29.6 m/s |
+
+Not normalizing again went farther on every seed, and the gap grew from 99 to 153 m.
+Normalized runs sped up, from 22.5 to 25.8 m/s, but crashed more, from 11% to 31%,
+so they gained only 21 m. Not normalized runs cut crashes from 45% to 34% at full
+speed and gained 75 m, and their three seeds landed within 46 m of each other.
+
+### Normalized with speed 2 and -3 crash, 40k
+
+Same 40k setup and seeds, normalized with high_speed_reward 2 and collision_reward
+-3, meant to sit between normalized -2 (too slow) and speed 2 with -2 (too reckless).
+
+| Reward | Seed 1 | Seed 2 | Seed 3 | Mean distance | Mean crash rate | Mean speed |
+|---|---|---|---|---|---|---|
+| Normalized, 2 speed, -3 crash | 902 m, 42% | 789 m, 63% | 801 m, 64% | 831 m | 56% | 28.8 m/s |
+
+Still too reckless: it drove at full speed but crashed more than half the time, and
+lost to not normalized -2 on every seed (902 against 979, 789 against 873, 801
+against 964 m). Its 831 m mean is about level with normalized -2's 840 m. A -3
+crash wasn't enough to balance a speed reward of 2.
 
 ## Runs
 
@@ -511,5 +546,61 @@ before training.
 
 - **Hypothesis:** With more training, normalized runs speed up from about 22 m/s and close the gap to not normalizing's 939 m mean at 40k
 - **Change:** 40,000 more steps on 40k-norm2-seed1's model.zip with its saved replay buffer, same normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_115946_dqn_40k-norm2-seed1/model.zip)
-- **Result:** mean_reward=34.51 +/- 5.48, mean_steps=38.4/40, crash_rate=8%, mean_speed=24.2m/s, mean_distance=931m (48 episodes)
-- **Conclusion:** TODO
+- **Result:** mean_reward=33.53 +/- 7.16, mean_steps=37.4/40, crash_rate=13%, mean_speed=24.2m/s, mean_distance=904m (200 episodes)
+- **Conclusion:** See the 80k normalizing comparison at the top.
+
+### 20261108_154243_dqn_80k-off2-seed1-resumed
+
+- **Hypothesis:** With more training, not normalized runs cut their 45% mean crash rate at 40k while keeping full speed
+- **Change:** 40,000 more steps on 40k-off2-seed1's model.zip with its saved replay buffer, same not normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_122129_dqn_40k-off2-seed1/model.zip)
+- **Result:** mean_reward=15.40 +/- 5.07, mean_steps=35.1/40, crash_rate=32%, mean_speed=29.6m/s, mean_distance=1041m (200 episodes)
+- **Conclusion:** See the 80k normalizing comparison at the top.
+
+### 20261108_160553_dqn_80k-norm2-seed2-resumed
+
+- **Hypothesis:** With more training, normalized runs speed up from about 22 m/s and close the gap to not normalizing's 939 m mean at 40k
+- **Change:** 40,000 more steps on 40k-norm2-seed2's model.zip with its saved replay buffer, same normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_124242_dqn_40k-norm2-seed2/model.zip)
+- **Result:** mean_reward=31.87 +/- 9.29, mean_steps=35.2/40, crash_rate=22%, mean_speed=25.3m/s, mean_distance=889m (200 episodes)
+- **Conclusion:** See the 80k normalizing comparison at the top.
+
+### 20261108_162851_dqn_80k-off2-seed2-resumed
+
+- **Hypothesis:** With more training, not normalized runs cut their 45% mean crash rate at 40k while keeping full speed
+- **Change:** 40,000 more steps on 40k-off2-seed2's model.zip with its saved replay buffer, same not normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_130435_dqn_40k-off2-seed2/model.zip)
+- **Result:** mean_reward=14.84 +/- 5.94, mean_steps=34.0/40, crash_rate=34%, mean_speed=29.6m/s, mean_distance=1006m (200 episodes)
+- **Conclusion:** See the 80k normalizing comparison at the top.
+
+### 20261108_165537_dqn_80k-norm2-seed3-resumed
+
+- **Hypothesis:** With more training, normalized runs speed up from about 22 m/s and close the gap to not normalizing's 939 m mean at 40k
+- **Change:** 40,000 more steps on 40k-norm2-seed3's model.zip with its saved replay buffer, same normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_132555_dqn_40k-norm2-seed3/model.zip)
+- **Result:** mean_reward=26.46 +/- 11.87, mean_steps=28.2/40, crash_rate=58%, mean_speed=27.9m/s, mean_distance=789m (200 episodes)
+- **Conclusion:** See the 80k normalizing comparison at the top.
+
+### 20261108_171729_dqn_80k-off2-seed3-resumed
+
+- **Hypothesis:** With more training, not normalized runs cut their 45% mean crash rate at 40k while keeping full speed
+- **Change:** 40,000 more steps on 40k-off2-seed3's model.zip with its saved replay buffer, same not normalized -2 crash reward, learning rate and seed (resumed from runs/20261108_134724_dqn_40k-off2-seed3/model.zip)
+- **Result:** mean_reward=14.37 +/- 6.00, mean_steps=33.6/40, crash_rate=36%, mean_speed=29.6m/s, mean_distance=995m (200 episodes)
+- **Conclusion:** See the 80k normalizing comparison at the top.
+
+### 20261108_175722_dqn_40k-norm-speed2-crash3-seed1
+
+- **Hypothesis:** Normalized with a 2 full-speed reward and -3 crash balances speed against crashes better than either normalized -2 (840 m mean at 40k, too slow) or speed 2 with -2 (too reckless), beating not normalized -2's 939 m mean
+- **Change:** Seed 1 of 3, normalized reward with high_speed_reward 2 and collision_reward -3, 40k steps
+- **Result:** mean_reward=29.22 +/- 10.85, mean_steps=31.9/40, crash_rate=42%, mean_speed=28.2m/s, mean_distance=902m (200 episodes)
+- **Conclusion:** See the speed 2, -3 crash comparison at the top.
+
+### 20261108_181823_dqn_40k-norm-speed2-crash3-seed2
+
+- **Hypothesis:** Normalized with a 2 full-speed reward and -3 crash balances speed against crashes better than either normalized -2 (840 m mean at 40k, too slow) or speed 2 with -2 (too reckless), beating not normalized -2's 939 m mean
+- **Change:** Seed 2 of 3, normalized reward with high_speed_reward 2 and collision_reward -3, 40k steps
+- **Result:** mean_reward=25.54 +/- 12.63, mean_steps=27.2/40, crash_rate=63%, mean_speed=29.1m/s, mean_distance=789m (200 episodes)
+- **Conclusion:** See the speed 2, -3 crash comparison at the top.
+
+### 20261108_183901_dqn_40k-norm-speed2-crash3-seed3
+
+- **Hypothesis:** Normalized with a 2 full-speed reward and -3 crash balances speed against crashes better than either normalized -2 (840 m mean at 40k, too slow) or speed 2 with -2 (too reckless), beating not normalized -2's 939 m mean
+- **Change:** Seed 3 of 3, normalized reward with high_speed_reward 2 and collision_reward -3, 40k steps
+- **Result:** mean_reward=25.97 +/- 11.86, mean_steps=27.6/40, crash_rate=64%, mean_speed=29.0m/s, mean_distance=801m (200 episodes)
+- **Conclusion:** See the speed 2, -3 crash comparison at the top.
