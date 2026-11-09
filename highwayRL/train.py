@@ -6,7 +6,8 @@ Every run says what it tests, with all three of these:
 Also takes `--algo ppo` for PPO, `--timesteps 50000` for a chosen length,
 `--learning-rate 1e-4` or `--gamma 0.9` to override config.py, `--exploration-fraction 0.3`
 for a DQN's epsilon to decay over 30% of the run instead of 10%, `--target-update-interval 500`
-for a DQN's target network to update every 500 steps instead of 50, `--decisions-per-second 2`
+for a DQN's target network to update every 500 steps instead of 50, `--buffer-size 200000`
+for a DQN to learn from its last 200,000 steps instead of 15,000, `--decisions-per-second 2`
 to choose more often than once a second, `--default-reward` to train on
 highway-env's reward rather than ENV_CONFIG, and `--collision-reward -2` or
 `--high-speed-reward 2` to set the crash penalty or full-speed reward on top of
@@ -40,6 +41,9 @@ from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.logger import configure
+from stable_baselines3.common.buffers import ReplayBuffer
+from stable_baselines3.common.save_util import load_from_pkl
+import numpy as np
 
 from evaluate import DrivingStats, describe, load_best, make_envs, run_algo, score
 
@@ -63,6 +67,24 @@ class DrivingEvalCallback(EvalCallback):
                 self.logger.record(f"eval/{name}", value)
             self.logger.dump(self.num_timesteps)
         return keep_going
+
+
+def _copy_into_buffer(old: ReplayBuffer, new: ReplayBuffer) -> None:
+    """Copy a saved replay buffer into one of another size, oldest steps first.
+
+    Each array is (steps per env, envs, ...). If the new one is smaller, only the
+    newest steps fit.
+    """
+    if old.n_envs != new.n_envs:
+        raise ValueError(f"Saved buffer has {old.n_envs} envs, this run has {new.n_envs}")
+    order = np.r_[old.pos : old.buffer_size, 0 : old.pos] if old.full else np.arange(old.pos)
+    order = order[-new.buffer_size :]
+    for name in ("observations", "next_observations", "actions", "rewards", "dones", "timeouts"):
+        old_array, new_array = getattr(old, name, None), getattr(new, name, None)
+        if old_array is not None and new_array is not None:
+            new_array[: len(order)] = old_array[order]
+    new.pos = len(order) % new.buffer_size
+    new.full = len(order) == new.buffer_size
 
 
 def _write_run_log(
@@ -98,6 +120,7 @@ def _write_run_log(
         hyperparameters["exploration_fraction"] = model.exploration_fraction
         hyperparameters["exploration_final_eps"] = model.exploration_final_eps
         hyperparameters["target_update_interval"] = model.target_update_interval
+        hyperparameters["buffer_size"] = model.buffer_size
     lines += [f"  {key}: {value}" for key, value in hyperparameters.items()]
     (run_dir / "run.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -126,6 +149,7 @@ def train(
     gamma: float | None = None,
     exploration_fraction: float | None = None,
     target_update_interval: int | None = None,
+    buffer_size: int | None = None,
 ) -> Path:
     settings = config.ALGORITHMS[algo]
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -142,12 +166,17 @@ def train(
         overrides["exploration_fraction"] = exploration_fraction
     if target_update_interval is not None:
         overrides["target_update_interval"] = target_update_interval
+    if buffer_size is not None:
+        overrides["buffer_size"] = buffer_size
     if resume:
         model = MODELS[algo].load(resume, env=env, device="cpu", custom_objects=overrides)
         model.set_random_seed(seed)
         buffer = resume.parent / "replay_buffer.pkl"
         if resume.name == "model.zip" and buffer.is_file():
-            model.load_replay_buffer(buffer)
+            if buffer_size is None:
+                model.load_replay_buffer(buffer)
+            else:
+                _copy_into_buffer(load_from_pkl(buffer), model.replay_buffer)
             print(f"Loaded {buffer}: {model.replay_buffer.size() * config.N_ENVS} steps")
         change = f"{change} (resumed from {resume.as_posix()})"
     else:
@@ -216,6 +245,11 @@ if __name__ == "__main__":
         type=int,
         help="DQN only: steps between target network updates. Defaults to 50.",
     )
+    parser.add_argument(
+        "--buffer-size",
+        type=int,
+        help="DQN only: steps the replay buffer holds. Defaults to 15,000. Resuming keeps the saved steps.",
+    )
     parser.add_argument("--default-reward", action="store_true", help="Ignore ENV_CONFIG for this run.")
     parser.add_argument("--collision-reward", type=float, help="Crash reward, like -2. Works with --default-reward.")
     parser.add_argument("--high-speed-reward", type=float, help="Full-speed reward, like 2. Works with --default-reward.")
@@ -247,9 +281,11 @@ if __name__ == "__main__":
             parser.error(f"--resume file not found: {args.resume}")
         source = args.resume.parent
         algo = run_algo(source.parent if source.name == "checkpoints" else source)
-    if algo != "dqn" and (args.exploration_fraction is not None or args.target_update_interval is not None):
-        parser.error("--exploration-fraction and --target-update-interval only apply to DQN")
+    dqn_only = (args.exploration_fraction, args.target_update_interval, args.buffer_size)
+    if algo != "dqn" and any(option is not None for option in dqn_only):
+        parser.error("--exploration-fraction, --target-update-interval and --buffer-size only apply to DQN")
     train(
         algo, args.timesteps, args.name, args.hypothesis, args.change, args.learning_rate,
         args.resume, args.seed, args.gamma, args.exploration_fraction, args.target_update_interval,
+        args.buffer_size,
     )
